@@ -1,0 +1,397 @@
+/* My Offers - Grid Layout (Same as Home Page) */
+
+.my-offers-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+body.dark-mode .my-offers-wrapper {
+  color: #e0e0e0;
+}
+
+/* Header Section */
+.my-offers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+}
+
+.my-offers-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+body.dark-mode .my-offers-title {
+  color: #e0e0e0;
+}
+
+.btn-create-offer {
+  padding: 12px 24px;
+  background-color: #51b86c;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(81, 184, 108, 0.2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-create-offer:hover {
+  background-color: #45a05a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(81, 184, 108, 0.3);
+  color: white;
+}
+
+/* Messages Container */
+.messages-container {
+  margin-bottom: 24px;
+}
+
+.message {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.message.success {
+  background: rgba(81, 184, 108, 0.1);
+  color: #208c34;
+  border: 1px solid rgba(81, 184, 108, 0.3);
+}
+
+.message.error {
+  background: rgba(220, 53, 69, 0.1);
+  color: #c82333;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+body.dark-mode .message.success {
+  background: rgba(81, 184, 108, 0.15);
+  color: #51b86c;
+  border-color: rgba(81, 184, 108, 0.4);
+}
+
+body.dark-mode .message.error {
+  background: rgba(220, 53, 69, 0.15);
+  color: #ff6b6b;
+  border-color: rgba(220, 53, 69, 0.4);
+}
+
+/* Grid Layout (Same as Home Page) */
+.offers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .offers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .offers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Offer Card - Reuses styles from main_site.css */
+/* Override cursor for My Offers cards (no card-level click) */
+.offers-grid .offer_card {
+  cursor: default;
+}
+
+.offers-grid .offer_card:hover {
+  cursor: default;
+}
+
+/* Additional styles for My Offers specific elements */
+
+/* Status Display */
+.offer_status_display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.status-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.status-value {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+body.dark-mode .offer_status_display {
+  background: #3a3a3a;
+}
+
+body.dark-mode .status-label {
+  color: #9ca3af;
+}
+
+body.dark-mode .status-value {
+  color: #e0e0e0;
+}
+
+/* Assigned User Display */
+.offer_assigned {
+  padding: 8px 12px;
+  background: rgba(81, 184, 108, 0.1);
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.assigned-label {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.assigned-name {
+  color: #51b86c;
+  font-weight: 600;
+}
+
+body.dark-mode .offer_assigned {
+  background: rgba(81, 184, 108, 0.15);
+}
+
+body.dark-mode .assigned-label {
+  color: #9ca3af;
+}
+
+body.dark-mode .assigned-name {
+  color: #51b86c;
+}
+
+/* Action Bar */
+.offer_action_bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+body.dark-mode .offer_action_bar {
+  border-top-color: #4a4a4a;
+}
+
+.btn-action {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+  text-align: center;
+  min-width: 80px;
+  box-sizing: border-box;
+}
+
+.btn-view {
+  background: transparent;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.btn-view:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+.btn-edit {
+  background: transparent;
+  color: #333;
+  border: 1px solid #dee2e6;
+}
+
+.btn-edit:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  color: #1a1a1a;
+}
+
+.btn-delete {
+  background: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.btn-delete:hover {
+  background: #dc3545;
+  color: white;
+}
+
+body.dark-mode .btn-view {
+  color: #9ca3af;
+  border-color: #555;
+}
+
+body.dark-mode .btn-view:hover {
+  background: #3a3a3a;
+  border-color: #6c757d;
+  color: #e0e0e0;
+}
+
+body.dark-mode .btn-edit {
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+body.dark-mode .btn-edit:hover {
+  background: #3a3a3a;
+  border-color: #6c757d;
+  color: #e0e0e0;
+}
+
+body.dark-mode .btn-delete {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+body.dark-mode .btn-delete:hover {
+  background: #ff6b6b;
+  color: white;
+}
+
+/* Empty State */
+.no-offers-empty {
+  text-align: center;
+  padding: 80px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
+              0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .no-offers-empty {
+  background: #2d2d2d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2),
+              0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.no-offers-icon {
+  font-size: 80px;
+  opacity: 0.4;
+  margin-bottom: 24px;
+}
+
+.no-offers-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+}
+
+body.dark-mode .no-offers-title {
+  color: #e0e0e0;
+}
+
+.no-offers-message {
+  font-size: 15px;
+  color: #6c757d;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+body.dark-mode .no-offers-message {
+  color: #9ca3af;
+}
+
+.btn-create-first {
+  padding: 12px 32px;
+  background-color: #51b86c;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(81, 184, 108, 0.2);
+}
+
+.btn-create-first:hover {
+  background-color: #45a05a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(81, 184, 108, 0.3);
+  color: white;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .my-offers-wrapper {
+    padding: 24px 16px;
+  }
+  
+  .my-offers-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .my-offers-title {
+    font-size: 26px;
+  }
+  
+  .btn-create-offer {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .offer_action_bar {
+    flex-direction: column;
+  }
+  
+  .btn-action {
+    width: 100%;
+  }
+  
+  .no-offers-empty {
+    padding: 60px 20px;
+  }
+  
+  .no-offers-icon {
+    font-size: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .my-offers-title {
+    font-size: 22px;
+  }
+  
+  .offers-grid {
+    gap: 16px;
+  }
+}

@@ -1,0 +1,521 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Contracts - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/my_offers.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ landlord.name }})</TopPanelButton>
+        </div>
+    </header>
+
+    <!-- Manage Contracts Content -->
+    <div class="my-offers-wrapper">
+        <!-- Header Section with Create Button -->
+        <div class="my-offers-header">
+            <h1 class="my-offers-title">Contract Templates</h1>
+            <a href="{% url 'create_contract' %}" class="btn-create-offer">+ Create New Template</a>
+        </div>
+
+
+        <!-- Tabs -->
+        <div class="contract-tabs">
+            <button class="tab-button active" onclick="showTab('templates')">📝 Templates</button>
+            <button class="tab-button" onclick="showTab('contracts')">📄 Generated Contracts</button>
+        </div>
+
+        <!-- Templates Tab -->
+        <div id="templatesTab" class="tab-content active">
+        {% if templates_with_preview %}
+            <!-- Grid Layout -->
+            <div class="offers-grid">
+                {% for template, template_preview in templates_with_preview %}
+                    <div class="offer_card">
+                        <!-- Content Section -->
+                        <div class="offer_content">
+                            <h3 class="offer_title">Contract Template #{{ template.id }}</h3>
+                            
+                            <div class="contract-template-info">
+                                <div class="contract-template-meta">
+                                    <span class="contract-meta-item">📅 Created: {{ template.created_at|date:"M d, Y" }}</span>
+                                    {% if template.updated_at != template.created_at %}
+                                    <span class="contract-meta-item">🔄 Updated: {{ template.updated_at|date:"M d, Y" }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="contract-assigned-offers">
+                                    <strong>Assigned to:</strong>
+                                    {% if template.offers.all %}
+                                        <div class="assigned-offers-list">
+                                            {% for offer in template.offers.all %}
+                                                <span class="assigned-offer-tag">{{ offer.title }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <span class="no-offers-assigned">No offers assigned</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="contract-preview">
+                                    <strong>Preview:</strong>
+                                    <p class="contract-preview-text">{{ template_preview|truncatewords:50 }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="contract-actions">
+                            <a href="{% url 'edit_contract_template' template.id %}" class="btn-edit-contract">✏️ Edit</a>
+                            <button onclick="confirmDelete({{ template.id }})" class="btn-delete-contract">🗑️ Delete</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No Contract Templates</h2>
+                <p>You haven't created any contract templates yet.</p>
+                <a href="{% url 'create_contract' %}" class="btn-create-offer">Create Your First Template</a>
+            </div>
+        {% endif %}
+        </div>
+
+        <!-- Generated Contracts Tab -->
+        <div id="contractsTab" class="tab-content">
+        {% if generated_contracts %}
+            <div class="offers-grid">
+                {% for contract in generated_contracts %}
+                    <div class="offer_card">
+                        <div class="offer_content">
+                            <h3 class="offer_title">{{ contract.offer.title }}</h3>
+                            
+                            <div class="contract-template-info">
+                                <div class="contract-template-meta">
+                                    <span class="contract-meta-item">📅 Created: {{ contract.created_at|date:"M d, Y" }}</span>
+                                    <span class="contract-meta-item">👤 Tenant: {{ contract.tenant.name }} {{ contract.tenant.surname }}</span>
+                                </div>
+                                
+                                <div class="contract-signature-status">
+                                    <strong>Signatures:</strong>
+                                    <div class="signature-status-list">
+                                        <span class="signature-item {% if contract.signed_by_tenant %}signed{% else %}pending{% endif %}">
+                                            Tenant: {% if contract.signed_by_tenant %}✅{% if contract.signed_by_tenant_at %} ({{ contract.signed_by_tenant_at|date:"M d, Y" }}){% endif %}{% else %}⏳ Pending{% endif %}
+                                        </span>
+                                        <span class="signature-item {% if contract.signed_by_landlord %}signed{% else %}pending{% endif %}">
+                                            Landlord: {% if contract.signed_by_landlord %}✅{% if contract.signed_by_landlord_at %} ({{ contract.signed_by_landlord_at|date:"M d, Y" }}){% endif %}{% else %}⏳ Pending{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="contract-actions">
+                            <a href="{% url 'view_contract_landlord' contract.id %}" class="btn-edit-contract">📄 View Contract</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No Generated Contracts</h2>
+                <p>Contracts will appear here once you finalize rentals with tenants.</p>
+            </div>
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="delete-modal" style="display: none;">
+    <div class="delete-modal-overlay" onclick="closeDeleteModal()"></div>
+    <div class="delete-modal-content">
+        <h3>Delete Contract Template?</h3>
+        <p>Are you sure you want to delete this contract template? This action cannot be undone.</p>
+        <div class="delete-modal-actions">
+            <button onclick="closeDeleteModal()" class="btn-cancel">Cancel</button>
+            <form id="deleteForm" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-confirm-delete">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmDelete(templateId) {
+        const modal = document.getElementById('deleteModal');
+        const form = document.getElementById('deleteForm');
+        form.action = `/contracts/delete/${templateId}`;
+        modal.style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    // Simple tab switching for Templates / Generated Contracts
+    function showTab(tab) {
+        const templatesTab = document.getElementById('templatesTab');
+        const contractsTab = document.getElementById('contractsTab');
+        const buttons = document.querySelectorAll('.contract-tabs .tab-button');
+
+        // Toggle tab content visibility
+        templatesTab.classList.toggle('active', tab === 'templates');
+        contractsTab.classList.toggle('active', tab === 'contracts');
+
+        // Update button active state
+        buttons.forEach((btn) => {
+            const isTemplates = btn.textContent.includes('Templates');
+            btn.classList.toggle('active', (tab === 'templates' && isTemplates) || (tab === 'contracts' && !isTemplates));
+        });
+    }
+</script>
+
+<style>
+    /* Tabs */
+    .contract-tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 24px;
+    }
+
+    .tab-button {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        background: transparent;
+        color: #6c757d;
+        transition: all 0.2s ease;
+    }
+
+    .tab-button.active {
+        background: #51b86c;
+        color: white;
+        box-shadow: 0 4px 10px rgba(81, 184, 108, 0.35);
+    }
+
+    .tab-button:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.08);
+        color: #495057;
+    }
+
+    body.dark-mode .contract-tabs {
+        background: rgba(0, 0, 0, 0.35);
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    body.dark-mode .tab-button {
+        color: #9ca3af;
+    }
+
+    body.dark-mode .tab-button:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.04);
+        color: #e0e0e0;
+    }
+
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.2s ease-out;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Template and contract cards */
+    .contract-template-info {
+        padding: 16px 0;
+    }
+
+    .contract-template-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .contract-meta-item {
+        font-size: 13px;
+        color: #6c757d;
+    }
+
+    body.dark-mode .contract-meta-item {
+        color: #9ca3af;
+    }
+
+    .contract-assigned-offers {
+        margin-bottom: 16px;
+    }
+
+    .contract-assigned-offers strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .contract-assigned-offers strong {
+        color: #e0e0e0;
+    }
+
+    .assigned-offers-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .assigned-offer-tag {
+        display: inline-block;
+        padding: 4px 10px;
+        background: rgba(81, 184, 108, 0.1);
+        border: 1px solid rgba(81, 184, 108, 0.3);
+        border-radius: 12px;
+        font-size: 12px;
+        color: #51b86c;
+    }
+
+    body.dark-mode .assigned-offer-tag {
+        background: rgba(81, 184, 108, 0.2);
+        border-color: rgba(81, 184, 108, 0.4);
+    }
+
+    .no-offers-assigned {
+        font-size: 13px;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    body.dark-mode .no-offers-assigned {
+        color: #9ca3af;
+    }
+
+    .contract-preview {
+        margin-top: 16px;
+    }
+
+    .contract-preview strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .contract-preview strong {
+        color: #e0e0e0;
+    }
+
+    .contract-preview-text {
+        font-size: 13px;
+        color: #6c757d;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    body.dark-mode .contract-preview-text {
+        color: #9ca3af;
+    }
+
+    .contract-actions {
+        display: flex;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid #e9ecef;
+        margin-top: 16px;
+    }
+
+    body.dark-mode .contract-actions {
+        border-top-color: #4a4a4a;
+    }
+
+    .btn-edit-contract,
+    .btn-delete-contract {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+    }
+
+    .btn-edit-contract {
+        background: #51b86c;
+        color: white;
+    }
+
+    .btn-edit-contract:hover {
+        background: #45a05a;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(81, 184, 108, 0.3);
+    }
+
+    .btn-delete-contract {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-delete-contract:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    }
+
+    .delete-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .delete-modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+
+    .delete-modal-content {
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        z-index: 10001;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-mode .delete-modal-content {
+        background: #2d2d2d;
+    }
+
+    .delete-modal-content h3 {
+        margin: 0 0 12px 0;
+        font-size: 20px;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .delete-modal-content h3 {
+        color: #e0e0e0;
+    }
+
+    .delete-modal-content p {
+        margin: 0 0 24px 0;
+        color: #6c757d;
+        line-height: 1.6;
+    }
+
+    body.dark-mode .delete-modal-content p {
+        color: #9ca3af;
+    }
+
+    .delete-modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn-cancel,
+    .btn-confirm-delete {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-cancel {
+        background: #e9ecef;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .btn-cancel {
+        background: #4a4a4a;
+        color: #e0e0e0;
+    }
+
+    .btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    body.dark-mode .btn-cancel:hover {
+        background: #5a5a5a;
+    }
+
+    .btn-confirm-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-confirm-delete:hover {
+        background: #c82333;
+    }
+</style>
+</body>
+</html>
+

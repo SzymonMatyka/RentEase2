@@ -1,0 +1,527 @@
+{% load static %}
+{% load price_format %}
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>Rent Ease</title>
+        <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+        <link rel="stylesheet" href="{% static 'styles/carousel.css' %}">
+        <script src="{% static 'js/theme.js' %}"></script>
+        <script src="{% static 'js/filters.js' %}"></script>
+        {% if landlord or tenant %}
+        <script src="{% static 'js/notifications.js' %}"></script>
+        {% endif %}
+
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord or tenant %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord or tenant %}
+                <TopPanelButton onclick="location.href='{% url 'offers' %}'">Home</TopPanelButton>
+                {% if landlord %}
+                    <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% elif tenant %}
+                    <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% endif %}
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout{% if landlord %} ({{ landlord.name }}){% elif tenant %} ({{ tenant.name }}){% endif %}</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Top Filter Bar -->
+    <div class="filters-top-bar">
+        <form method="get" id="filterForm" class="filters-form">
+            <div class="filters-grid">
+                <!-- Default Visible Filters -->
+                <div class="filter-group">
+                    <label>Price (zł):</label>
+                    <div class="filter-input-group">
+                        <div class="input-wrapper-with-icon">
+                            <span class="input-icon">💰</span>
+                            <input type="number" name="price_from" placeholder="From" value="{{ filter_params.price_from|default:'' }}" min="0">
+                        </div>
+                        <input type="number" name="price_to" placeholder="To" value="{{ filter_params.price_to|default:'' }}" min="0">
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Area (m²):</label>
+                    <div class="filter-input-group">
+                        <div class="input-wrapper-with-icon">
+                            <span class="input-icon">📏</span>
+                            <input type="number" name="area_from" placeholder="From" value="{{ filter_params.area_from|default:'' }}" min="0">
+                        </div>
+                        <input type="number" name="area_to" placeholder="To" value="{{ filter_params.area_to|default:'' }}" min="0">
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Rooms:</label>
+                    <div class="filter-input-group">
+                        <div class="input-wrapper-with-icon">
+                            <span class="input-icon">🚪</span>
+                            <input type="number" name="rooms_from" placeholder="From" value="{{ filter_params.rooms_from|default:'' }}" min="0">
+                        </div>
+                        <input type="number" name="rooms_to" placeholder="To" value="{{ filter_params.rooms_to|default:'' }}" min="0">
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Sale or Rent:</label>
+                    <select name="sale_or_rent">
+                        <option value="">All</option>
+                        <option value="Sale" {% if filter_params.sale_or_rent == 'Sale' %}selected{% endif %}>Sale</option>
+                        <option value="Rent" {% if filter_params.sale_or_rent == 'Rent' %}selected{% endif %}>Rent</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- More Filters Button -->
+            <div class="more-filters-wrapper">
+                <button type="button" id="moreFiltersBtn" onclick="openFiltersModal()" class="more-filters-btn">More Filters</button>
+            </div>
+            
+            <!-- Filter Modal (Hidden by default) -->
+            <div id="filtersModal" class="filters-modal">
+                <div class="filters-modal-overlay" onclick="closeFiltersModal()"></div>
+                <div class="filters-modal-content">
+                    <div class="filters-modal-header">
+                        <h2>Advanced Filters</h2>
+                        <button type="button" class="filters-modal-close" onclick="closeFiltersModal()" aria-label="Close">&times;</button>
+                    </div>
+                    
+                    <div class="filters-modal-body">
+                        <!-- Additional Filters (grouped in modal) -->
+                        <div id="additionalFilters" class="additional-filters-modal">
+                            <!-- Location & Building Section -->
+                            <div class="filter-section">
+                                <h3 class="filter-section-title">Location & Building</h3>
+                                <div class="filter-section-grid">
+                                    <div class="filter-group">
+                                        <label>Location:</label>
+                                        <input type="text" name="location" placeholder="Search location..." value="{{ filter_params.location|default:'' }}">
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Floor:</label>
+                                        <input type="text" name="floor" placeholder="Floor..." value="{{ filter_params.floor|default:'' }}">
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Building Type:</label>
+                                        <select name="building_type">
+                                            <option value="">All</option>
+                                            <option value="Apartment building" {% if filter_params.building_type == 'Apartment building' %}selected{% endif %}>Apartment building</option>
+                                            <option value="Tenement house" {% if filter_params.building_type == 'Tenement house' %}selected{% endif %}>Tenement house</option>
+                                            <option value="Townhouse" {% if filter_params.building_type == 'Townhouse' %}selected{% endif %}>Townhouse</option>
+                                            <option value="Detached house" {% if filter_params.building_type == 'Detached house' %}selected{% endif %}>Detached house</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Property Details Section -->
+                            <div class="filter-section">
+                                <h3 class="filter-section-title">Property Details</h3>
+                                <div class="filter-section-grid">
+                                    <div class="filter-group">
+                                        <label>Year Built:</label>
+                                        <div class="filter-input-group">
+                                            <input type="number" name="year_from" placeholder="From" value="{{ filter_params.year_from|default:'' }}" min="0">
+                                            <input type="number" name="year_to" placeholder="To" value="{{ filter_params.year_to|default:'' }}" min="0">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Condition:</label>
+                                        <select name="condition">
+                                            <option value="">All</option>
+                                            <option value="New" {% if filter_params.condition == 'New' %}selected{% endif %}>New</option>
+                                            <option value="Renovated" {% if filter_params.condition == 'Renovated' %}selected{% endif %}>Renovated</option>
+                                            <option value="Good" {% if filter_params.condition == 'Good' %}selected{% endif %}>Good</option>
+                                            <option value="Needs renovation" {% if filter_params.condition == 'Needs renovation' %}selected{% endif %}>Needs renovation</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Furnished:</label>
+                                        <select name="furnished">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.furnished == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.furnished == 'No' %}selected{% endif %}>No</option>
+                                            <option value="Partially" {% if filter_params.furnished == 'Partially' %}selected{% endif %}>Partially</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Basement:</label>
+                                        <select name="basement">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.basement == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.basement == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Amenities Section -->
+                            <div class="filter-section">
+                                <h3 class="filter-section-title">Amenities</h3>
+                                <div class="filter-section-grid">
+                                    <div class="filter-group">
+                                        <label>Balcony/Terrace/Garden:</label>
+                                        <select name="balcony_terrace_garden">
+                                            <option value="">All</option>
+                                            <option value="Balcony" {% if filter_params.balcony_terrace_garden == 'Balcony' %}selected{% endif %}>Balcony</option>
+                                            <option value="Terrace" {% if filter_params.balcony_terrace_garden == 'Terrace' %}selected{% endif %}>Terrace</option>
+                                            <option value="Garden" {% if filter_params.balcony_terrace_garden == 'Garden' %}selected{% endif %}>Garden</option>
+                                            <option value="None" {% if filter_params.balcony_terrace_garden == 'None' %}selected{% endif %}>None</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Elevator:</label>
+                                        <select name="elevator">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.elevator == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.elevator == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Parking:</label>
+                                        <select name="parking">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.parking == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.parking == 'No' %}selected{% endif %}>No</option>
+                                            <option value="Garage" {% if filter_params.parking == 'Garage' %}selected{% endif %}>Garage</option>
+                                            <option value="Street" {% if filter_params.parking == 'Street' %}selected{% endif %}>Street</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Internet/Fiber:</label>
+                                        <select name="internet_fiber">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.internet_fiber == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.internet_fiber == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Pets Allowed:</label>
+                                        <select name="pets_allowed">
+                                            <option value="">All</option>
+                                            <option value="Yes" {% if filter_params.pets_allowed == 'Yes' %}selected{% endif %}>Yes</option>
+                                            <option value="No" {% if filter_params.pets_allowed == 'No' %}selected{% endif %}>No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Additional Costs Section -->
+                            <div class="filter-section">
+                                <h3 class="filter-section-title">Additional Costs</h3>
+                                <div class="filter-section-grid">
+                                    <div class="filter-group">
+                                        <label>Admin Fees (zł):</label>
+                                        <div class="filter-input-group">
+                                            <input type="number" name="admin_fees_from" placeholder="From" value="{{ filter_params.admin_fees_from|default:'' }}" min="0">
+                                            <input type="number" name="admin_fees_to" placeholder="To" value="{{ filter_params.admin_fees_to|default:'' }}" min="0">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Deposit (zł):</label>
+                                        <div class="filter-input-group">
+                                            <input type="number" name="deposit_from" placeholder="From" value="{{ filter_params.deposit_from|default:'' }}" min="0">
+                                            <input type="number" name="deposit_to" placeholder="To" value="{{ filter_params.deposit_to|default:'' }}" min="0">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Min Rental Period (months):</label>
+                                        <div class="filter-input-group">
+                                            <input type="number" name="rental_period_from" placeholder="From" value="{{ filter_params.rental_period_from|default:'' }}" min="0">
+                                            <input type="number" name="rental_period_to" placeholder="To" value="{{ filter_params.rental_period_to|default:'' }}" min="0">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="filter-group">
+                                        <label>Heating:</label>
+                                        <select name="heating">
+                                            <option value="">All</option>
+                                            <option value="Central" {% if filter_params.heating == 'Central' %}selected{% endif %}>Central</option>
+                                            <option value="Gas" {% if filter_params.heating == 'Gas' %}selected{% endif %}>Gas</option>
+                                            <option value="Electric" {% if filter_params.heating == 'Electric' %}selected{% endif %}>Electric</option>
+                                            <option value="Underfloor" {% if filter_params.heating == 'Underfloor' %}selected{% endif %}>Underfloor</option>
+                                            <option value="None" {% if filter_params.heating == 'None' %}selected{% endif %}>None</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="filters-modal-footer">
+                        <button type="button" class="btn-secondary" onclick="clearFiltersModal()">Clear</button>
+                        <button type="button" class="btn-primary" onclick="applyFiltersModal()">Show Results</button>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- Filter Buttons -->
+            <div class="filter-buttons">
+                <button type="submit" class="btn-primary">Apply Filters</button>
+                <a href="{% url 'offers' %}" class="btn-secondary">Clear Filters</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Apartment Listings Grid -->
+    <div class="listings-container">
+        {% if offers %}
+        <div class="offers-grid">
+            {% for offer in offers %}
+                <div class="offer_card" onclick="location.href='{% url 'offer_detail' offer.id %}'">
+                    <div class="offer_image-wrapper">
+                        {% if offer.photos.all %}
+                            <div class="carousel-container">
+                                {% for photo in offer.photos.all %}
+                                <div class="carousel-slide">
+                                    <img src="{{ photo.data_uri }}" alt="Photo {{ forloop.counter }} for {{ offer.title }}" style="width:100%">
+                                </div>
+                                {% endfor %}
+                                <a class="carousel-prev" onclick="event.stopPropagation();">&#10094;</a>
+                                <a class="carousel-next" onclick="event.stopPropagation();">&#10095;</a>
+                                <div class="carousel-counter"></div>
+                            </div>
+                        {% else %}
+                            <img src="{% static 'images/no_photo.png' %}" alt="No photo" class="offer_image">
+                        {% endif %}
+                        {% if offer.status == 'Unavailable' %}
+                            <span class="offer_status_badge">Unavailable</span>
+                        {% endif %}
+                        {% if tenant %}
+                        <button class="favorite-button" 
+                                data-offer-id="{{ offer.id }}" 
+                                data-is-favorite="{% if offer.is_favorite %}true{% else %}false{% endif %}"
+                                onclick="event.stopPropagation(); toggleFavorite({{ offer.id }}, this);"
+                                aria-label="Add to favorites">
+                            <span class="favorite-icon">{% if offer.is_favorite %}❤️{% else %}🤍{% endif %}</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <div class="offer_content">
+                        <h3 class="offer_title">{{ offer.title }}</h3>
+                        
+                        {% if offer.location %}
+                        <div class="offer_location">
+                            <span class="offer_location-icon">📍</span>
+                            <span class="offer_location-text">{{ offer.location }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="offer_key_specs">
+                            {% if offer.number_of_rooms %}
+                            <div class="offer_spec_item">
+                                <span class="offer_spec_icon">🛏️</span>
+                                <span class="offer_spec_value">{{ offer.number_of_rooms }}</span>
+                                <span class="offer_spec_label">Rooms</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if offer.area %}
+                            <div class="offer_spec_item">
+                                <span class="offer_spec_icon">📐</span>
+                                <span class="offer_spec_value">{{ offer.area }}</span>
+                                <span class="offer_spec_label">m²</span>
+                            </div>
+                            {% elif offer.square_footage %}
+                            <div class="offer_spec_item">
+                                <span class="offer_spec_icon">📐</span>
+                                <span class="offer_spec_value">{{ offer.square_footage }}</span>
+                                <span class="offer_spec_label">m²</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if offer.floor %}
+                            <div class="offer_spec_item">
+                                <span class="offer_spec_icon">🏢</span>
+                                <span class="offer_spec_value">{{ offer.floor }}</span>
+                                <span class="offer_spec_label">Floor</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="offer_footer">
+                            <div class="offer_price_container">
+                                <span class="offer_price">{{ offer.price|price_format }} zł</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-offers">
+            <div class="no-offers-content">
+                <div class="no-offers-icon">🏠</div>
+                <h2 class="no-offers-title">No Results Found</h2>
+                <p class="no-offers-message">We couldn't find any apartments matching your filters.</p>
+                <p class="no-offers-suggestion">Try adjusting your search criteria or <a href="{% url 'offers' %}" class="no-offers-link">clear all filters</a> to see more options.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="{% static 'js/carousel.js' %}"></script>
+<script>
+    function toggleFavorite(offerId, buttonElement) {
+        const icon = buttonElement.querySelector('.favorite-icon');
+        const isCurrentlyFavorite = buttonElement.dataset.isFavorite === 'true';
+        
+        // Optimistic update - immediately change the UI
+        if (isCurrentlyFavorite) {
+            icon.textContent = '🤍';
+            buttonElement.dataset.isFavorite = 'false';
+            buttonElement.classList.remove('favorite-active');
+        } else {
+            icon.textContent = '❤️';
+            buttonElement.dataset.isFavorite = 'true';
+            buttonElement.classList.add('favorite-active');
+        }
+        
+        // Add animation
+        buttonElement.classList.add('favorite-animate');
+        setTimeout(() => {
+            buttonElement.classList.remove('favorite-animate');
+        }, 300);
+        
+        // Send API request
+        fetch(`/api/favorites/${offerId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update state based on server response
+                if (data.isFavorite) {
+                    icon.textContent = '❤️';
+                    buttonElement.dataset.isFavorite = 'true';
+                    buttonElement.classList.add('favorite-active');
+                } else {
+                    icon.textContent = '🤍';
+                    buttonElement.dataset.isFavorite = 'false';
+                    buttonElement.classList.remove('favorite-active');
+                }
+            } else {
+                // Revert on error
+                if (isCurrentlyFavorite) {
+                    icon.textContent = '❤️';
+                    buttonElement.dataset.isFavorite = 'true';
+                    buttonElement.classList.add('favorite-active');
+                } else {
+                    icon.textContent = '🤍';
+                    buttonElement.dataset.isFavorite = 'false';
+                    buttonElement.classList.remove('favorite-active');
+                }
+                showToast('Failed to update favorite. Please try again.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling favorite:', error);
+            // Revert on error
+            if (isCurrentlyFavorite) {
+                icon.textContent = '❤️';
+                buttonElement.dataset.isFavorite = 'true';
+                buttonElement.classList.add('favorite-active');
+            } else {
+                icon.textContent = '🤍';
+                buttonElement.dataset.isFavorite = 'false';
+                buttonElement.classList.remove('favorite-active');
+            }
+            showToast('Failed to update favorite. Please try again.', 'error');
+        });
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function showToast(message, type = 'info') {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? '#e74c3c' : '#51b86c'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+</body>

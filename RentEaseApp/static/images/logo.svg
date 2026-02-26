@@ -1,0 +1,44 @@
+<svg width="200" height="40" viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text {
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        font-size: 22px;
+        letter-spacing: -0.3px;
+      }
+      .logo-text-rent {
+        font-weight: 700;
+        fill: #1a1a1a;
+      }
+      .logo-text-ease {
+        font-weight: 400;
+        fill: #51b86c;
+      }
+      .logo-icon {
+        stroke: #51b86c;
+        fill: none;
+        stroke-width: 3.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  
+  <!-- House Icon with Arrow -->
+  <g class="logo-icon" transform="translate(2, 6)">
+    <!-- House base (rectangle) -->
+    <path d="M 5 14 L 5 22 L 17 22 L 17 14 Z" />
+    <!-- House roof (triangle) -->
+    <path d="M 3 14 L 11 5 L 19 14" />
+    <!-- Door opening -->
+    <path d="M 8 22 L 8 17 L 10 17 L 10 22" />
+    <!-- Arrow (smoothly integrated, extending from house) -->
+    <path d="M 19 18 L 26 18" />
+    <path d="M 24 16 L 26 18 L 24 20" />
+  </g>
+  
+  <!-- Text: "Rent Ease" with proper spacing -->
+  <text x="42" y="27" class="logo-text logo-text-rent">Rent</text>
+  <text x="88" y="27" class="logo-text logo-text-ease">Ease</text>
+</svg>
+

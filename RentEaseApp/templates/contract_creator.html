@@ -1,0 +1,430 @@
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Contract Template - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/contract_creator.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    <style>
+    </style>
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord %}
+                <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ landlord.name }})</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Contract Creator Container -->
+    <div class="contract-creator-container">
+        <div class="contract-creator-header">
+            <h1 class="page-title">Contract Template Creator</h1>
+            <p class="page-subtitle">Create a reusable contract template and assign it to one or multiple offers</p>
+        </div>
+
+        <!-- Selection Bar -->
+        <div class="selection-bar">
+            <div class="selection-info">
+                <h3>Select Offers for This Template</h3>
+                <p>Check the offers you want to assign this contract template to. You can select multiple offers.</p>
+            </div>
+        </div>
+
+        <!-- 3-Column Layout -->
+        <div class="contract-editor-layout">
+            <!-- Left Sidebar: Tenant Data Blocks -->
+            <div class="sidebar sidebar-left">
+                <h3 class="sidebar-title">Tenant Data</h3>
+                <div class="variable-blocks">
+                    {% for field_name, field_label in tenant_fields %}
+                        <button 
+                            class="variable-block" 
+                            data-field-name="{{ field_name }}"
+                            draggable="true"
+                        >
+                            <span class="variable-label">{{ field_label }}</span>
+                            <span class="variable-preview">[Will be filled when contract is generated]</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Center: Document Editor -->
+            <div class="editor-main">
+                <div class="editor-toolbar">
+                    <button type="button" class="btn-preview" onclick="previewContract()">👁️ Preview</button>
+                    <button type="button" class="btn-save" onclick="saveContract()">💾 {% if is_edit_mode %}Update{% else %}Save{% endif %} Template</button>
+                </div>
+                <form id="contractForm" method="post">
+                    {% csrf_token %}
+                    <div class="offers-checkbox-section">
+                        <h4>Assign to Offers:</h4>
+                        <div class="offers-checkbox-list">
+                            {% for offer in available_offers %}
+                            <label class="offer-checkbox-item">
+                                <input type="checkbox" name="offer_ids" value="{{ offer.id }}" {% if template and offer in template.offers.all %}checked{% elif preselected_offer_id and offer.id == preselected_offer_id %}checked{% endif %}>
+                                <span class="offer-checkbox-label">
+                                    <strong>{{ offer.title }}</strong>
+                                    <span class="offer-checkbox-location">{{ offer.location|default:"No location" }}</span>
+                                </span>
+                            </label>
+                            {% empty %}
+                            <p class="no-offers-message">You don't have any offers yet. <a href="{% url 'create_offer' %}">Create one first</a>.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div 
+                        id="contractEditor" 
+                        contenteditable="true"
+                        class="contract-editor-contenteditable"
+                        data-placeholder="Start typing your contract template here... Click or drag variable blocks from the sidebars to insert them."
+                    >{% if template and template.template_structure %}{% for item in template.template_structure %}{% if item.type == 'text' %}{{ item.content|safe }}{% elif item.type == 'block' %}<span class="contract-block" data-field-name="{{ item.field_name }}" contenteditable="false">{{ item.label }}</span>{% endif %}{% endfor %}{% elif template and template.template_content %}{{ template.template_content }}{% endif %}</div>
+                    <input type="hidden" id="templateContent" name="template_content" value="{% if template %}{{ template.template_content|escape }}{% endif %}">
+                    <input type="hidden" id="templateStructure" name="template_structure" value="">
+                    {% if template and template.template_structure %}{{ template.template_structure|json_script:"template-structure-data" }}{% endif %}
+                </form>
+                <div id="previewContainer" class="preview-container" style="display: none;">
+                    <div class="preview-header">
+                        <h3>Preview</h3>
+                        <button type="button" class="btn-close-preview" onclick="closePreview()">✕</button>
+                    </div>
+                    <div id="previewContent" class="preview-content"></div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar: Landlord & Property Data -->
+            <div class="sidebar sidebar-right">
+                <h3 class="sidebar-title">Landlord Data</h3>
+                <div class="variable-blocks">
+                    {% for field_name, field_label in landlord_fields %}
+                        <button 
+                            class="variable-block" 
+                            data-field-name="{{ field_name }}"
+                            draggable="true"
+                        >
+                            <span class="variable-label">{{ field_label }}</span>
+                            <span class="variable-preview">
+                                {% if field_name == 'landlord_name' %}{{ landlord.name|default:"Not set" }}
+                                {% elif field_name == 'landlord_surname' %}{{ landlord.surname|default:"Not set" }}
+                                {% elif field_name == 'landlord_full_name' %}{{ landlord.name }} {{ landlord.surname }}
+                                {% elif field_name == 'landlord_pesel' %}{{ landlord.pesel|default:"Not set" }}
+                                {% elif field_name == 'landlord_id_card' %}{{ landlord.id_card_number|default:"Not set" }}
+                                {% elif field_name == 'landlord_address' %}{% if landlord.get_full_address %}{{ landlord.get_full_address }}{% else %}Not set{% endif %}
+                                {% elif field_name == 'landlord_phone' %}{{ landlord.phone_number|default:"Not set" }}
+                                {% elif field_name == 'landlord_email' %}{{ landlord.email }}
+                                {% elif field_name == 'landlord_bank_account' %}{{ landlord.bank_account_number|default:"Not set" }}
+                                {% else %}Not set{% endif %}
+                            </span>
+                        </button>
+                    {% endfor %}
+                </div>
+
+                <h3 class="sidebar-title" style="margin-top: 32px;">Property Data</h3>
+                <div class="variable-blocks">
+                    {% for field_name, field_label in property_fields %}
+                        <button 
+                            class="variable-block" 
+                            data-field-name="{{ field_name }}"
+                            draggable="true"
+                        >
+                            <span class="variable-label">{{ field_label }}</span>
+                            <span class="variable-preview">[From selected offer]</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const editor = document.getElementById('contractEditor');
+    let draggedFieldName = null;
+    let draggedLabel = null;
+
+    /**
+     * Creates a visual block element for a field.
+     */
+    function createBlockElement(fieldName, label) {
+        const block = document.createElement('span');
+        block.className = 'contract-block';
+        block.setAttribute('data-field-name', fieldName);
+        block.setAttribute('contenteditable', 'false');
+        block.textContent = label;
+        return block;
+    }
+
+    /**
+     * Gets the field label from a field name.
+     */
+    function getFieldLabel(fieldName) {
+        const block = document.querySelector('.variable-block[data-field-name="' + fieldName + '"]');
+        if (block) {
+            const labelElement = block.querySelector('.variable-label');
+            return labelElement ? labelElement.textContent : fieldName;
+        }
+        return fieldName;
+    }
+
+    /**
+     * Inserts a visual block at the current cursor position.
+     */
+    function insertBlock(fieldName) {
+        if (!editor) {
+            console.error('[ERROR] Editor not found');
+            return;
+        }
+
+        const selection = window.getSelection();
+        if (selection.rangeCount === 0) {
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        const label = getFieldLabel(fieldName);
+        const block = createBlockElement(fieldName, label);
+        range.insertNode(block);
+
+        // Move cursor after the block
+        range.setStartAfter(block);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        editor.focus();
+        updateTemplateData();
+    }
+
+    /**
+     * Collect text from a node (handles nested elements so pasted HTML is not lost).
+     */
+    function getTextFromNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+        if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('contract-block')) return null;
+        if (node.nodeType === Node.ELEMENT_NODE) return node.textContent || '';
+        return '';
+    }
+
+    /**
+     * Updates the hidden inputs with template content and structure.
+     */
+    function updateTemplateData() {
+        if (!editor) return;
+
+        const structure = [];
+        const textContent = [];
+        let currentText = '';
+
+        for (let i = 0; i < editor.childNodes.length; i++) {
+            const node = editor.childNodes[i];
+            
+            if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('contract-block')) {
+                if (currentText.trim()) {
+                    structure.push({ type: 'text', content: currentText });
+                    textContent.push(currentText);
+                    currentText = '';
+                }
+                const fieldName = node.getAttribute('data-field-name');
+                const label = node.textContent;
+                structure.push({ type: 'block', field_name: fieldName, label: label });
+                textContent.push('{{' + fieldName + '}}');
+            } else if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                if (text.trim()) currentText += text;
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                const text = getTextFromNode(node);
+                if (text && text.trim()) currentText += text;
+            }
+        }
+
+        if (currentText.trim()) {
+            structure.push({ type: 'text', content: currentText });
+            textContent.push(currentText);
+        }
+
+        document.getElementById('templateContent').value = textContent.join('');
+        document.getElementById('templateStructure').value = JSON.stringify(structure);
+    }
+
+    // Initialize drag & drop for all variable blocks
+    if (editor) {
+        // Attach click handlers to all variable blocks
+        document.querySelectorAll('.variable-block').forEach(block => {
+            block.addEventListener('click', function() {
+                const fieldName = this.dataset.fieldName;
+                if (fieldName) {
+                    insertBlock(fieldName);
+                }
+            });
+
+            // Attach drag start handlers
+            block.addEventListener('dragstart', function(e) {
+                draggedFieldName = this.dataset.fieldName;
+                draggedLabel = this.querySelector('.variable-label').textContent;
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('text/plain', draggedLabel); // For fallback
+            });
+        });
+
+        // Editor drag & drop handlers
+        editor.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            editor.classList.add('drag-active');
+        });
+
+        editor.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            editor.classList.add('drag-active');
+        });
+
+        editor.addEventListener('dragleave', (e) => {
+            if (!editor.contains(e.relatedTarget)) {
+                editor.classList.remove('drag-active');
+            }
+        });
+
+        editor.addEventListener('drop', (e) => {
+            e.preventDefault();
+            editor.classList.remove('drag-active');
+
+            if (draggedFieldName) {
+                // Get drop position
+                const selection = window.getSelection();
+                if (selection.rangeCount === 0) {
+                    // If no selection, place at end
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+
+                insertBlock(draggedFieldName);
+                draggedFieldName = null;
+                draggedLabel = null;
+            }
+        });
+
+        // Update template data on input
+        editor.addEventListener('input', updateTemplateData);
+        editor.addEventListener('keyup', updateTemplateData);
+
+        // Load existing template structure if editing (safe JSON from json_script)
+        (function() {
+            const dataEl = document.getElementById('template-structure-data');
+            if (dataEl) {
+                try {
+                    const structure = JSON.parse(dataEl.textContent);
+                    if (structure && structure.length) {
+                        editor.innerHTML = '';
+                        structure.forEach(function(item) {
+                            if (item.type === 'text' && item.content) {
+                                const textNode = document.createTextNode(item.content);
+                                editor.appendChild(textNode);
+                            } else if (item.type === 'block') {
+                                const block = createBlockElement(item.field_name, item.label);
+                                editor.appendChild(block);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error loading template structure:', e);
+                }
+            }
+        })();
+
+        // Initial update (only once)
+        updateTemplateData();
+    } else {
+        console.error('[FATAL] Editor #contractEditor NOT FOUND');
+    }
+
+    function previewContract() {
+        updateTemplateData();
+        const form = document.getElementById('contractForm');
+        const formData = new FormData(form);
+        
+        // Get first selected offer for property data preview
+        const selectedOffers = Array.from(form.querySelectorAll('input[name="offer_ids"]:checked'));
+        if (selectedOffers.length > 0) {
+            formData.append('offer_id', selectedOffers[0].value);
+        } else {
+            // If no offers selected, use first available for preview
+            const firstOffer = form.querySelector('input[name="offer_ids"]');
+            if (firstOffer) {
+                formData.append('offer_id', firstOffer.value);
+            }
+        }
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch('/api/contracts/preview-pdf', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => { throw new Error(data.error || 'Failed'); }).catch(() => { throw new Error('Failed to download PDF'); });
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'contract_template_preview.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error downloading preview: ' + error.message);
+        });
+    }
+
+    function closePreview() {
+        document.getElementById('previewContainer').style.display = 'none';
+        editor.style.display = 'block';
+        editor.focus();
+    }
+
+    function saveContract() {
+        updateTemplateData();
+        const selectedOffers = Array.from(document.querySelectorAll('input[name="offer_ids"]:checked'));
+        if (selectedOffers.length === 0) {
+            alert('Please select at least one offer to assign this template to.');
+            return;
+        }
+        document.getElementById('contractForm').submit();
+    }
+</script>
+
+</body>

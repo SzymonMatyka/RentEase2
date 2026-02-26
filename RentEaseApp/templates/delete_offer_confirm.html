@@ -1,0 +1,68 @@
+{% load static %}{% load price_format %}
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Offer - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/delete_offer_confirm.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="top_panel">
+    <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+        <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+    </topPanelLogo></a>
+    <div class="header-right">
+        <div class="theme-toggle-container">
+            <span class="theme-toggle-label">Light</span>
+            <label class="theme-toggle-switch">
+                <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                <span class="theme-toggle-slider"></span>
+            </label>
+            <span class="theme-toggle-label">Dark</span>
+        </div>
+        {% if landlord %}
+        <div class="notification-container">
+            <div class="notification-bell" id="notificationBell">
+                🔔
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </div>
+            <div class="notification-dropdown" id="notificationDropdown">
+                <div class="notification-header">New Messages</div>
+                <div class="notification-list"></div>
+            </div>
+        </div>
+        {% endif %}
+        <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+        <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+        <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+        <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ landlord.name }})</TopPanelButton>
+    </div>
+</div>
+
+<div class="content-wrapper">
+    <div class="main-content">
+        <div class="confirm-container">
+    <h2>Delete Offer</h2>
+    <p style="font-size: 18px; color: #dc3545; margin-bottom: 20px;">Are you sure you want to delete this offer?</p>
+    
+    <div class="offer-details">
+        <h3>{{ offer.title }}</h3>
+        <p><strong>Description:</strong> {{ offer.body }}</p>
+        <p><strong>Size:</strong> {% if offer.area %}{{ offer.area }}{% else %}{{ offer.square_footage }}{% endif %} m²</p>
+        <p><strong>Price:</strong> {{ offer.price|price_format }} zł</p>
+        <p><strong>Status:</strong> {{ offer.status }}</p>
+    </div>
+
+    <form method="post" style="margin-top: 30px;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'my_offers' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+        </div>
+    </div>
+</div>
+</body>
+

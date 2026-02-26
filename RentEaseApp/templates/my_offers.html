@@ -1,0 +1,156 @@
+{% load static %}{% load price_format %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Offers - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/my_offers.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ landlord.name }})</TopPanelButton>
+        </div>
+    </header>
+
+    <!-- My Offers Content -->
+    <div class="my-offers-wrapper">
+        <!-- Header Section with Create Button -->
+        <div class="my-offers-header">
+            <h1 class="my-offers-title">My Offers</h1>
+            <a href="{% url 'create_offer' %}" class="btn-create-offer">+ Create New Offer</a>
+        </div>
+
+        {% if offers %}
+            <!-- Grid Layout (Same as Home Page) -->
+            <div class="offers-grid">
+                {% for offer in offers %}
+                    <div class="offer_card">
+                        <!-- Image Section -->
+                        <div class="offer_image-wrapper" onclick="location.href='{% url 'offer_detail' offer.id %}'">
+                            {% for photo in offer.photos.all|slice:":1" %}
+                                <img src="{{ photo.data_uri }}" alt="{{ offer.title }}" class="offer_image">
+                            {% empty %}
+                                <img src="{% static 'images/no_photo.png' %}" alt="No photo" class="offer_image">
+                            {% endfor %}
+                            {% if offer.status == 'Unavailable' %}
+                                <span class="offer_status_badge">Unavailable</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Content Section -->
+                        <div class="offer_content">
+                            <h3 class="offer_title" onclick="location.href='{% url 'offer_detail' offer.id %}'">{{ offer.title }}</h3>
+                            
+                            {% if offer.location %}
+                            <div class="offer_location">
+                                <span class="offer_location-icon">📍</span>
+                                <span class="offer_location-text">{{ offer.location }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="offer_key_specs">
+                                {% if offer.number_of_rooms %}
+                                <div class="offer_spec_item">
+                                    <span class="offer_spec_icon">🛏️</span>
+                                    <span class="offer_spec_value">{{ offer.number_of_rooms }}</span>
+                                    <span class="offer_spec_label">Rooms</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if offer.area %}
+                                <div class="offer_spec_item">
+                                    <span class="offer_spec_icon">📐</span>
+                                    <span class="offer_spec_value">{{ offer.area }}</span>
+                                    <span class="offer_spec_label">m²</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if offer.floor %}
+                                <div class="offer_spec_item">
+                                    <span class="offer_spec_icon">🏢</span>
+                                    <span class="offer_spec_value">{{ offer.floor }}</span>
+                                    <span class="offer_spec_label">Floor</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Status Badge -->
+                            {% if offer.status != 'Unavailable' %}
+                            <div class="offer_status_display">
+                                <span class="status-label">Status:</span>
+                                <span class="status-value">{{ offer.status }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if offer.assigned_user %}
+                            <div class="offer_assigned">
+                                <span class="assigned-label">Assigned to:</span>
+                                <span class="assigned-name">{{ offer.assigned_user.name }} {{ offer.assigned_user.surname }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Price -->
+                            <div class="offer_footer">
+                                <div class="offer_price_container">
+                                    <span class="offer_price">{{ offer.price|price_format }} zł</span>
+                                </div>
+                            </div>
+
+                            <!-- Action Bar -->
+                            <div class="offer_action_bar" onclick="event.stopPropagation();">
+                                <a href="{% url 'offer_detail' offer.id %}" class="btn-action btn-view">View Details</a>
+                                <a href="{% url 'edit_offer' offer.id %}" class="btn-action btn-edit">Edit</a>
+                                <a href="{% url 'delete_offer' offer.id %}" class="btn-action btn-delete">Delete</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="no-offers-empty">
+                <div class="no-offers-icon">🏠</div>
+                <h2 class="no-offers-title">No Offers Yet</h2>
+                <p class="no-offers-message">You haven't created any offers yet. Start by creating your first offer!</p>
+                <a href="{% url 'create_offer' %}" class="btn-create-first">Create Your First Offer</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

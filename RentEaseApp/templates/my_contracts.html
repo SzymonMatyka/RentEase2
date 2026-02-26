@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Contracts - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/my_offers.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ tenant.name }})</TopPanelButton>
+        </div>
+    </header>
+
+    <!-- My Contracts Content -->
+    <div class="my-offers-wrapper">
+        <div class="my-offers-header">
+            <h1 class="my-offers-title">My Contracts</h1>
+        </div>
+
+        {% if contracts %}
+            <!-- Grid Layout -->
+            <div class="offers-grid">
+                {% for contract in contracts %}
+                    <div class="offer_card">
+                        <!-- Content Section -->
+                        <div class="offer_content">
+                            <h3 class="offer_title">{{ contract.offer.title }}</h3>
+                            
+                            {% if contract.offer.location %}
+                            <div class="offer_location">
+                                <span class="offer_location-icon">📍</span>
+                                <span class="offer_location-text">{{ contract.offer.location }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="contract-info">
+                                <div class="contract-meta">
+                                    <span class="contract-meta-item">📅 Created: {{ contract.created_at|date:"M d, Y" }}</span>
+                                    <span class="contract-meta-item">👤 Landlord: {{ contract.landlord.name }} {{ contract.landlord.surname }}</span>
+                                </div>
+                                
+                                <div class="contract-status">
+                                    <strong>Status:</strong>
+                                    <span class="status-badge {% if contract.signed_by_tenant and contract.signed_by_landlord %}status-signed{% elif contract.signed_by_tenant or contract.signed_by_landlord %}status-pending{% else %}status-active{% endif %}">
+                                        {% if contract.signed_by_tenant and contract.signed_by_landlord %}
+                                            ✅ Signed
+                                        {% elif contract.signed_by_tenant %}
+                                            ⏳ Pending (Landlord)
+                                        {% elif contract.signed_by_landlord %}
+                                            ⏳ Pending (You)
+                                        {% else %}
+                                            📄 Active
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Bar -->
+                        <div class="contract-actions">
+                            <a href="{% url 'view_contract' contract.id %}" class="btn-view-contract">📄 View Contract</a>
+                            {% if contract.signed_by_tenant and contract.signed_by_landlord %}
+                                <span class="contract-fully-signed">✅ Fully Signed</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <h2>No Contracts</h2>
+                <p>You don't have any contracts yet. Contracts will appear here once a landlord finalizes a rental agreement with you.</p>
+                <a href="{% url 'offers' %}" class="btn-create-offer">Browse Offers</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .contract-info {
+        padding: 16px 0;
+    }
+
+    .contract-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .contract-meta-item {
+        font-size: 13px;
+        color: #6c757d;
+    }
+
+    body.dark-mode .contract-meta-item {
+        color: #9ca3af;
+    }
+
+    .contract-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .contract-status strong {
+        font-size: 14px;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .contract-status strong {
+        color: #e0e0e0;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background: rgba(81, 184, 108, 0.1);
+        color: #51b86c;
+        border: 1px solid rgba(81, 184, 108, 0.3);
+    }
+
+    .status-pending {
+        background: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .status-signed {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .contract-actions {
+        padding-top: 16px;
+        border-top: 1px solid #e9ecef;
+        margin-top: 16px;
+    }
+
+    body.dark-mode .contract-actions {
+        border-top-color: #4a4a4a;
+    }
+
+    .btn-view-contract {
+        display: block;
+        width: 100%;
+        padding: 10px 16px;
+        background: #51b86c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-view-contract:hover {
+        background: #45a05a;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(81, 184, 108, 0.3);
+    }
+</style>
+</body>
+</html>
+

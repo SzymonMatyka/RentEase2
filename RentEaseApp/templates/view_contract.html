@@ -1,0 +1,283 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Contract - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord %}
+            <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+            {% elif tenant %}
+            <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+            {% endif %}
+            <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+            <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({% if landlord %}{{ landlord.name }}{% elif tenant %}{{ tenant.name }}{% endif %})</TopPanelButton>
+        </div>
+    </header>
+
+    <!-- Contract View Content -->
+    <div class="contract-view-wrapper">
+        <div class="contract-view-header">
+            <div class="contract-header-top">
+                <h1 class="contract-view-title">Lease Agreement</h1>
+                <a href="{% url 'download_contract_pdf' contract.id %}" class="btn-download-pdf" download>
+                    📥 Download PDF
+                </a>
+            </div>
+            <div class="contract-view-meta">
+                <span>📅 Created: {{ contract.created_at|date:"F d, Y" }}</span>
+                <span>🏠 Property: {{ contract.offer.title }}</span>
+                <span>👤 Landlord: {{ contract.landlord.name }} {{ contract.landlord.surname }}</span>
+            </div>
+        </div>
+
+        <div class="contract-view-content">
+            <div class="contract-document">
+                <pre class="contract-text">{{ contract.final_content|default:contract.template.template_content }}</pre>
+            </div>
+        </div>
+
+        <div class="contract-view-footer">
+            <div class="contract-signatures">
+                <div class="signature-section">
+                    <strong>Tenant Signature:</strong>
+                    {% if contract.signed_by_tenant %}
+                        <span class="signature-status signed">✅ Signed</span>
+                        {% if contract.signed_by_tenant_at %}
+                            <span class="signature-timestamp">on {{ contract.signed_by_tenant_at|date:"F d, Y H:i" }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="signature-status unsigned">⏳ Pending</span>
+                        {% if tenant and contract.tenant == tenant %}
+                            <form method="post" action="{% url 'sign_contract' contract.id 'tenant' %}" style="display: inline; margin-left: 12px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-sign-contract">Sign Contract</button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="signature-section">
+                    <strong>Landlord Signature:</strong>
+                    {% if contract.signed_by_landlord %}
+                        <span class="signature-status signed">✅ Signed</span>
+                        {% if contract.signed_by_landlord_at %}
+                            <span class="signature-timestamp">on {{ contract.signed_by_landlord_at|date:"F d, Y H:i" }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="signature-status unsigned">⏳ Pending</span>
+                        {% if landlord and contract.landlord == landlord %}
+                            <form method="post" action="{% url 'sign_contract' contract.id 'landlord' %}" style="display: inline; margin-left: 12px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-sign-contract">Sign Contract</button>
+                            </form>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .contract-view-wrapper {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 0 24px;
+    }
+
+    .contract-view-header {
+        margin-bottom: 32px;
+    }
+
+    .contract-view-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0 0 16px 0;
+    }
+
+    body.dark-mode .contract-view-title {
+        color: #e0e0e0;
+    }
+
+    .contract-view-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 14px;
+        color: #6c757d;
+    }
+
+    body.dark-mode .contract-view-meta {
+        color: #9ca3af;
+    }
+
+    .contract-view-content {
+        background: white;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+    }
+
+    body.dark-mode .contract-view-content {
+        background: #2d2d2d;
+    }
+
+    .contract-document {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .contract-text {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 14px;
+        line-height: 1.8;
+        color: #1a1a1a;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 0;
+    }
+
+    body.dark-mode .contract-text {
+        color: #e0e0e0;
+    }
+
+    .contract-view-footer {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-mode .contract-view-footer {
+        background: #2d2d2d;
+    }
+
+    .contract-signatures {
+        display: flex;
+        justify-content: space-around;
+        gap: 32px;
+    }
+
+    .signature-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .signature-section strong {
+        font-size: 14px;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .signature-section strong {
+        color: #e0e0e0;
+    }
+
+    .signature-status {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .signature-status.signed {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .signature-status.unsigned {
+        background: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    .signature-timestamp {
+        display: block;
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+        font-weight: normal;
+    }
+
+    body.dark-mode .signature-timestamp {
+        color: #9ca3af;
+    }
+
+    .btn-sign-contract {
+        padding: 8px 16px;
+        background: #51b86c;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 8px;
+    }
+
+    .btn-sign-contract:hover {
+        background: #45a05a;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(81, 184, 108, 0.3);
+    }
+
+    .contract-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .btn-download-pdf {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #51b86c 0%, #45a05a 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 2px 8px rgba(81, 184, 108, 0.2);
+    }
+
+    .btn-download-pdf:hover {
+        background: linear-gradient(135deg, #45a05a 0%, #3d8f4f 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(81, 184, 108, 0.3);
+    }
+</style>
+</body>
+</html>
+

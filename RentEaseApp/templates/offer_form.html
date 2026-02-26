@@ -1,0 +1,537 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ action }} Offer - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/offer_form.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord %}
+                <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({{ landlord.name }})</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Form Content -->
+    <div class="offer-form-wrapper">
+        <div class="offer-form-container">
+            <h1 class="offer-form-title">{{ action }} Offer</h1>
+            
+            <form method="post" enctype="multipart/form-data" id="offerForm" class="offer-form">
+                {% csrf_token %}
+                
+                <!-- Basic Information Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">Basic Information</h2>
+                    <div class="form-grid">
+                        <div class="form-group form-group-full">
+                            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="form-error">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group form-group-full">
+                            <label for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                            {{ form.body }}
+                            {% if form.body.errors %}
+                                <div class="form-error">{{ form.body.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="form-error">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.sale_or_rent.id_for_label }}">{{ form.sale_or_rent.label }} <span class="required">*</span></label>
+                            {{ form.sale_or_rent }}
+                            {% if form.sale_or_rent.errors %}
+                                <div class="form-error">{{ form.sale_or_rent.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photos Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">Photos</h2>
+                    <div class="form-group form-group-full">
+                        <div class="upload-wrapper">
+                            <div class="upload-area" id="uploadArea">
+                                <div class="upload-icon">📷</div>
+                                <div class="upload-text">Drag and drop images here</div>
+                                <div class="upload-hint">or click to select from your computer</div>
+                            </div>
+                            {{ form.photos }}
+                        </div>
+                        {% if form.photos.errors %}
+                            <div class="form-error">{{ form.photos.errors.0 }}</div>
+                        {% endif %}
+                        <div class="image-preview-container" id="imagePreviewContainer"></div>
+                    </div>
+
+                    {% if action == "Edit" and existing_photos %}
+                    <div class="existing-photos-section">
+                        <h3 class="existing-photos-title">Existing Photos</h3>
+                        <div class="image-preview-container existing-photos-grid">
+                            {% for photo in existing_photos %}
+                            <div class="image-preview existing-photo">
+                                <img src="{{ photo.data_uri }}" alt="Existing photo">
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Location Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">Location</h2>
+                    <div class="form-grid">
+                        <div class="form-group form-group-full">
+                            <label for="{{ form.location.id_for_label }}">{{ form.location.label }} <span class="required">*</span></label>
+                            {{ form.location }}
+                            {% if form.location.errors %}
+                                <div class="form-error">{{ form.location.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financials Section -->
+                <div class="form-section form-section-financials">
+                    <h2 class="form-section-title">Financials</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.price.id_for_label }}">{{ form.price.label }} <span class="required">*</span></label>
+                            {{ form.price }}
+                            {% if form.price.errors %}
+                                <div class="form-error">{{ form.price.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.area.id_for_label }}">{{ form.area.label }} <span class="required">*</span></label>
+                            {{ form.area }}
+                            {% if form.area.errors %}
+                                <div class="form-error">{{ form.area.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.admin_fees.id_for_label }}">{{ form.admin_fees.label }}</label>
+                            {{ form.admin_fees }}
+                            {% if form.admin_fees.errors %}
+                                <div class="form-error">{{ form.admin_fees.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.deposit.id_for_label }}">{{ form.deposit.label }}</label>
+                            {{ form.deposit }}
+                            {% if form.deposit.errors %}
+                                <div class="form-error">{{ form.deposit.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.minimum_rental_period.id_for_label }}">{{ form.minimum_rental_period.label }}</label>
+                            {{ form.minimum_rental_period }}
+                            {% if form.minimum_rental_period.errors %}
+                                <div class="form-error">{{ form.minimum_rental_period.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group form-group-full">
+                            <label for="{{ form.additional_utilities.id_for_label }}">{{ form.additional_utilities.label }}</label>
+                            {{ form.additional_utilities }}
+                            {% if form.additional_utilities.help_text %}
+                                <small class="form-help-text">{{ form.additional_utilities.help_text }}</small>
+                            {% endif %}
+                            {% if form.additional_utilities.errors %}
+                                <div class="form-error">{{ form.additional_utilities.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Details Section -->
+                <div class="form-section form-section-wide">
+                    <h2 class="form-section-title">Property Details</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.building_type.id_for_label }}">{{ form.building_type.label }}</label>
+                            {{ form.building_type }}
+                            {% if form.building_type.errors %}
+                                <div class="form-error">{{ form.building_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.floor.id_for_label }}">{{ form.floor.label }}</label>
+                            {{ form.floor }}
+                            {% if form.floor.help_text %}
+                                <small class="form-help-text">{{ form.floor.help_text }}</small>
+                            {% endif %}
+                            {% if form.floor.errors %}
+                                <div class="form-error">{{ form.floor.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.number_of_rooms.id_for_label }}">{{ form.number_of_rooms.label }}</label>
+                            {{ form.number_of_rooms }}
+                            {% if form.number_of_rooms.errors %}
+                                <div class="form-error">{{ form.number_of_rooms.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.year_built.id_for_label }}">{{ form.year_built.label }}</label>
+                            {{ form.year_built }}
+                            {% if form.year_built.errors %}
+                                <div class="form-error">{{ form.year_built.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.furnished.id_for_label }}">{{ form.furnished.label }}</label>
+                            {{ form.furnished }}
+                            {% if form.furnished.errors %}
+                                <div class="form-error">{{ form.furnished.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.condition.id_for_label }}">{{ form.condition.label }}</label>
+                            {{ form.condition }}
+                            {% if form.condition.errors %}
+                                <div class="form-error">{{ form.condition.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features & Amenities Section -->
+                <div class="form-section form-section-wide">
+                    <h2 class="form-section-title">Features & Amenities</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="{{ form.basement.id_for_label }}">{{ form.basement.label }}</label>
+                            {{ form.basement }}
+                            {% if form.basement.errors %}
+                                <div class="form-error">{{ form.basement.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.balcony_terrace_garden.id_for_label }}">{{ form.balcony_terrace_garden.label }}</label>
+                            {{ form.balcony_terrace_garden }}
+                            {% if form.balcony_terrace_garden.errors %}
+                                <div class="form-error">{{ form.balcony_terrace_garden.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.elevator.id_for_label }}">{{ form.elevator.label }}</label>
+                            {{ form.elevator }}
+                            {% if form.elevator.errors %}
+                                <div class="form-error">{{ form.elevator.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.heating.id_for_label }}">{{ form.heating.label }}</label>
+                            {{ form.heating }}
+                            {% if form.heating.errors %}
+                                <div class="form-error">{{ form.heating.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.parking.id_for_label }}">{{ form.parking.label }}</label>
+                            {{ form.parking }}
+                            {% if form.parking.errors %}
+                                <div class="form-error">{{ form.parking.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.internet_fiber.id_for_label }}">{{ form.internet_fiber.label }}</label>
+                            {{ form.internet_fiber }}
+                            {% if form.internet_fiber.errors %}
+                                <div class="form-error">{{ form.internet_fiber.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.pets_allowed.id_for_label }}">{{ form.pets_allowed.label }}</label>
+                            {{ form.pets_allowed }}
+                            {% if form.pets_allowed.errors %}
+                                <div class="form-error">{{ form.pets_allowed.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions Footer -->
+                <div class="form-actions">
+                    <a href="{% url 'my_offers' %}" class="btn-cancel">Cancel</a>
+                    <button type="submit" class="btn-submit">{{ action }} Offer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeFileUpload();
+    });
+    
+    function initializeFileUpload() {
+        const uploadArea = document.getElementById('uploadArea');
+        let fileInput = document.querySelector('.file-input');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const form = document.getElementById('offerForm');
+        let dragDropFiles = []; // Track files from drag-and-drop separately
+
+        // CRITICAL: Ensure file input has correct name attribute immediately
+        if (fileInput) {
+            if (!fileInput.name || fileInput.name === '') {
+                fileInput.setAttribute('name', 'photos');
+                console.log('Initialized: Set file input name to "photos"');
+            } else {
+                console.log('File input name is already:', fileInput.name);
+            }
+        } else {
+            console.error('File input not found on page load!');
+        }
+
+    // Click to select files
+    uploadArea.addEventListener('click', () => {
+        if (fileInput) {
+            fileInput.click();
+        }
+    });
+
+    // File input change - handle native file selection (don't manipulate, just preview)
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            console.log('File input changed, files:', e.target.files.length);
+            console.log('File input name:', e.target.name);
+            console.log('File input files:', Array.from(e.target.files).map(f => f.name));
+            
+            // Ensure name is set BEFORE doing anything else
+            if (!e.target.name || e.target.name === '') {
+                e.target.setAttribute('name', 'photos');
+                console.log('Set name attribute to photos');
+            }
+            
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    previewImage(file);
+                }
+            });
+            // CRITICAL: Don't manipulate fileInput.files - browser already set them correctly
+            // Any manipulation here will break form submission
+        });
+    }
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files);
+        const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        
+        // Store drag-and-drop files
+        dragDropFiles = imageFiles;
+        
+        // Preview them
+        imageFiles.forEach(file => {
+            previewImage(file);
+        });
+        
+        // Add drag-and-drop files to the file input
+        if (imageFiles.length > 0) {
+            try {
+                const dataTransfer = new DataTransfer();
+                
+                // Add existing files from native selection (if any)
+                const existingFiles = Array.from(fileInput.files || []);
+                existingFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                
+                // Add drag-and-drop files
+                imageFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                
+                fileInput.files = dataTransfer.files;
+            } catch (e) {
+                console.error('Error adding drag-and-drop files:', e);
+                // Fallback: create a new file input with the files
+                const newInput = document.createElement('input');
+                newInput.type = 'file';
+                newInput.name = fileInput.name || 'photos';
+                newInput.className = fileInput.className;
+                newInput.style.display = 'none';
+                newInput.multiple = true;
+                newInput.accept = 'image/*';
+                
+                const dataTransfer = new DataTransfer();
+                const existingFiles = Array.from(fileInput.files || []);
+                existingFiles.forEach(file => dataTransfer.items.add(file));
+                imageFiles.forEach(file => dataTransfer.items.add(file));
+                newInput.files = dataTransfer.files;
+                
+                fileInput.parentNode.replaceChild(newInput, fileInput);
+                // Update reference
+                fileInput = document.querySelector('.file-input');
+            }
+        }
+    });
+
+    function previewImage(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.createElement('div');
+            preview.className = 'image-preview';
+            preview.dataset.filename = file.name;
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.alt = file.name;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '×';
+            removeBtn.type = 'button';
+            removeBtn.onclick = () => removeImage(file.name);
+            
+            preview.appendChild(img);
+            preview.appendChild(removeBtn);
+            imagePreviewContainer.appendChild(preview);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function removeImage(filename) {
+        // Remove from preview
+        const preview = document.querySelector(`.image-preview[data-filename="${filename}"]`);
+        if (preview) {
+            preview.remove();
+        }
+        
+        // Remove from file input
+        if (fileInput.files) {
+            const files = Array.from(fileInput.files);
+            const remainingFiles = files.filter(file => file.name !== filename);
+            
+            try {
+                const dataTransfer = new DataTransfer();
+                remainingFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
+                fileInput.files = dataTransfer.files;
+            } catch (e) {
+                console.error('Error removing file:', e);
+            }
+        }
+    }
+
+    // Ensure files are properly included on form submit
+    form.addEventListener('submit', (e) => {
+        // Get the file input again in case it was replaced
+        fileInput = document.querySelector('.file-input') || fileInput;
+        
+        if (!fileInput) {
+            console.error('File input not found!');
+            return;
+        }
+        
+        // CRITICAL: Ensure name attribute is set and file input is in form
+        if (!fileInput.name || fileInput.name === '') {
+            fileInput.setAttribute('name', 'photos');
+            console.log('Set name attribute to photos on submit');
+        }
+        
+        // Ensure the file input is inside the form
+        if (!form.contains(fileInput)) {
+            console.error('File input is not inside the form! Moving it...');
+            form.appendChild(fileInput);
+        }
+        
+        // Verify file input has files
+        if (fileInput.files && fileInput.files.length > 0) {
+            console.log('Submitting form with', fileInput.files.length, 'files');
+            console.log('File input name:', fileInput.name);
+            console.log('File input files:', Array.from(fileInput.files).map(f => f.name));
+            console.log('File input is in form:', form.contains(fileInput));
+        } else {
+            console.log('No files to submit (this is OK since photos are optional)');
+        }
+    });
+    } // End of initializeFileUpload function
+</script>
+</body>
+</html>

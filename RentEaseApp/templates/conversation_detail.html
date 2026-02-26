@@ -1,0 +1,290 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversation - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/conversation_detail.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord or tenant %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord or tenant %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord or tenant %}
+                {% if landlord %}
+                    <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% elif tenant %}
+                    <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% endif %}
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({% if landlord %}{{ landlord.name }}{% elif tenant %}{{ tenant.name }}{% endif %})</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Chat Container -->
+    <div class="chat-wrapper">
+        <div class="chat-container">
+            <!-- Chat Header (Sticky) -->
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="chat-header-avatar">
+                        {% if user_type == 'landlord' %}
+                            <span class="chat-avatar-initials">{{ conversation.tenant.name|first|upper }}{{ conversation.tenant.surname|first|upper }}</span>
+                        {% else %}
+                            <span class="chat-avatar-initials">{{ conversation.landlord.name|first|upper }}{{ conversation.landlord.surname|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="chat-header-info">
+                        <h2 class="chat-header-title">{{ conversation.offer.title }}</h2>
+                        <p class="chat-header-subtitle">
+                            {% if user_type == 'landlord' %}
+                                {{ conversation.tenant.name }} {{ conversation.tenant.surname }}
+                            {% else %}
+                                {{ conversation.landlord.name }} {{ conversation.landlord.surname }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <a href="{% url 'offer_detail' conversation.offer.id %}" class="chat-view-offer-link">View Offer</a>
+                </div>
+            </div>
+
+            <!-- Messages Area (Scrollable) -->
+            <div class="chat-messages" id="chatMessages">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="message-bubble {% if message.sender_type == user_type %}message-outgoing{% else %}message-incoming{% endif %}">
+                            <div class="message-text">{{ message.content }}</div>
+                            <div class="message-time">
+                                {{ message.created_at|date:"H:i" }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty State: Start Conversation -->
+                    <div class="chat-empty-state">
+                        <div class="chat-empty-icon">💬</div>
+                        <h3 class="chat-empty-title">Start the discussion</h3>
+                        <p class="chat-empty-message">Start the discussion about <strong>{{ conversation.offer.title }}</strong></p>
+                        <div class="chat-empty-time">Today</div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Message Input Area (Sticky Footer) -->
+            <form method="post" class="chat-input-area" action="{% if is_draft %}{% url 'conversation_detail_from_offer' offer_id %}{% else %}{% url 'conversation_detail' conversation.id %}{% endif %}" onsubmit="setTimeout(function(){ if(window.updateNotificationBell) window.updateNotificationBell(); }, 500); scrollToBottom();">
+                {% csrf_token %}
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        name="content" 
+                        placeholder="Type your message..." 
+                        required
+                        class="chat-input-field"
+                        id="messageInput"
+                        rows="1"
+                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.submit(); }"></textarea>
+                    <button type="submit" class="chat-send-button" title="Send message">
+                        <span class="send-icon">✈️</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Finalize Offer Section (for landlords) - Only show if conversation exists (not draft) -->
+            {% if not is_draft %}
+                {% if user_type == 'landlord' and conversation.offer.status != 'Unavailable' %}
+                    <div class="chat-finalize-section">
+                        <button type="button" class="finalize-offer-button" onclick="handleRentClick({{ conversation.id }}, {{ conversation.offer.id }})">
+                            🏠 Rent / Finalize
+                        </button>
+                    </div>
+                {% elif conversation.offer.status == 'Unavailable' %}
+                    <div class="chat-finalize-section">
+                        <div class="finalize-banner">
+                            <span class="finalize-icon">✓</span>
+                            <span class="finalize-text">This offer has been finalized.</span>
+                            {% if conversation.offer.assigned_user %}
+                                <span class="finalize-assigned">Assigned to: {{ conversation.offer.assigned_user.name }} {{ conversation.offer.assigned_user.surname }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Rent Modal -->
+<div id="rentModal" class="rent-modal" style="display: none;">
+    <div class="rent-modal-overlay" onclick="closeRentModal()"></div>
+    <div class="rent-modal-content">
+        <div class="rent-modal-header">
+            <h3>No Contract Template Found</h3>
+            <button type="button" class="rent-modal-close" onclick="closeRentModal()">✕</button>
+        </div>
+        <div class="rent-modal-body">
+            <p>This offer doesn't have a contract template assigned yet. How would you like to proceed?</p>
+            <div class="rent-modal-options">
+                <button type="button" class="rent-option-btn rent-option-digital" onclick="createDigitalContract()">
+                    <span class="rent-option-icon">📄</span>
+                    <div class="rent-option-content">
+                        <strong>Create Digital Contract</strong>
+                        <span>Create a contract template and generate a digital document</span>
+                    </div>
+                </button>
+                <button type="button" class="rent-option-btn rent-option-external" onclick="finalizeExternal()">
+                    <span class="rent-option-icon">📝</span>
+                    <div class="rent-option-content">
+                        <strong>Paper / External Contract</strong>
+                        <span>Finalize without digital contract (external signing)</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentConversationId = null;
+    let currentOfferId = null;
+    
+    function handleRentClick(conversationId, offerId) {
+        currentConversationId = conversationId;
+        currentOfferId = offerId;
+        
+        // Check if contract template exists
+        fetch(`/conversations/${conversationId}/rent`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.ok && response.headers.get('content-type')?.includes('application/json')) {
+                return response.json();
+            } else if (response.ok) {
+                // Template exists - page will reload with success message
+                window.location.reload();
+                return null;
+            } else {
+                return response.json();
+            }
+        })
+        .then(data => {
+            if (data && data.has_template === false) {
+                // No template - show modal
+                document.getElementById('rentModal').style.display = 'flex';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Try to show modal anyway
+            document.getElementById('rentModal').style.display = 'flex';
+        });
+    }
+    
+    function createDigitalContract() {
+        // Redirect to contract creator with offer and conversation pre-selected
+        window.location.href = `/contracts/create?offer_id=${currentOfferId}&conversation_id=${currentConversationId}`;
+    }
+    
+    function finalizeExternal() {
+        // Finalize without digital contract
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/conversations/${currentConversationId}/rent-external`;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = getCookie('csrftoken');
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+    
+    function closeRentModal() {
+        document.getElementById('rentModal').style.display = 'none';
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Auto-scroll to bottom on page load
+    function scrollToBottom() {
+        const messagesContainer = document.getElementById('chatMessages');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+    
+    // Auto-resize textarea
+    const messageInput = document.getElementById('messageInput');
+    if (messageInput) {
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    }
+    
+    // Scroll to bottom on page load
+    window.addEventListener('DOMContentLoaded', scrollToBottom);
+    
+    // Scroll to bottom after message is sent (when page reloads)
+    if (document.getElementById('chatMessages')) {
+        scrollToBottom();
+    }
+</script>
+</body>
+</html>

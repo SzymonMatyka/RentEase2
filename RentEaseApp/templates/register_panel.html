@@ -1,0 +1,80 @@
+{% load static %}
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="{% static 'styles/register_panel.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+</head>
+<body>
+<div class="form-container">
+    <h2>Register</h2>
+    <form id="registerForm" method="post" onsubmit="return validateForm()">
+    {% csrf_token %}
+
+    <div class="user-type">
+        <input type="radio" id="landlord" name="user_type" value="landlord">
+        <label for="landlord">Landlord</label>
+
+        <input type="radio" id="tenant" name="user_type" value="tenant">
+        <label for="tenant">Tenant</label>
+    </div>
+    <div id="userTypeError" class="error-message"></div>
+
+    <input type="text" id="name" name="name" placeholder="Name">
+    <div id="nameError" class="error-message"></div>
+
+    <input type="text" id="surname" name="surname" placeholder="Surname">
+    <div id="surnameError" class="error-message"></div>
+
+    <input type="email" id="email" name="email" placeholder="Email">
+    <div id="emailError" class="error-message"></div>
+
+    <input type="password" id="password" name="password" placeholder="Password">
+    <div id="passwordError" class="error-message"></div>
+
+    <button type="submit">Register</button>
+</form>
+
+    <p style="text-align:center; margin-top:10px;">
+        Already have an account? <a href="/login" style="color:#51b86c;">Login</a>
+    </p>
+</div>
+<script>
+function validateForm() {
+    let valid = true;
+
+    document.querySelectorAll(".error-message").forEach(el => el.innerText = "");
+
+    if (!document.querySelector('input[name="user_type"]:checked')) {
+        document.getElementById("userTypeError").innerText = "Please select user type.";
+        valid = false;
+    }
+
+    if (document.getElementById("name").value.trim() === "") {
+        document.getElementById("nameError").innerText = "Name is required.";
+        valid = false;
+    }
+
+    if (document.getElementById("surname").value.trim() === "") {
+        document.getElementById("surnameError").innerText = "Surname is required.";
+        valid = false;
+    }
+
+    const email = document.getElementById("email").value.trim();
+    if (email === "") {
+        document.getElementById("emailError").innerText = "Email is required.";
+        valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+        document.getElementById("emailError").innerText = "Invalid email format.";
+        valid = false;
+    }
+
+    if (document.getElementById("password").value.trim() === "") {
+        document.getElementById("passwordError").innerText = "Password is required.";
+        valid = false;
+    }
+
+    return valid;
+}
+</script>
+</body>
+

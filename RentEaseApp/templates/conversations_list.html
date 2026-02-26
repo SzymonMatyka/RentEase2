@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversations - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/conversations_list.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord or tenant %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord or tenant %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord or tenant %}
+                {% if landlord %}
+                    <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% elif tenant %}
+                    <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% endif %}
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({% if landlord %}{{ landlord.name }}{% elif tenant %}{{ tenant.name }}{% endif %})</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Conversations Inbox -->
+    <div class="conversations-inbox-wrapper">
+        <div class="conversations-inbox-container">
+            <h1 class="inbox-title">Messages</h1>
+            
+            {% if conversations %}
+                <div class="conversations-list">
+                    {% for conversation in conversations %}
+                        <div class="conversation-row" onclick="location.href='{% url 'conversation_detail' conversation.id %}'">
+                            <!-- Avatar (Left) -->
+                            <div class="conversation-avatar">
+                                {% if user_type == 'landlord' %}
+                                    <span class="avatar-initials">{{ conversation.tenant.name|first|upper }}{{ conversation.tenant.surname|first|upper }}</span>
+                                {% else %}
+                                    <span class="avatar-initials">{{ conversation.landlord.name|first|upper }}{{ conversation.landlord.surname|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Middle Content -->
+                            <div class="conversation-content">
+                                <div class="conversation-main-info">
+                                    <h3 class="conversation-apartment-name">{{ conversation.offer.title }}</h3>
+                                    <span class="conversation-time">
+                                        {% if conversation.messages.last %}
+                                            {{ conversation.messages.last.created_at|date:"M d" }}
+                                        {% else %}
+                                            {{ conversation.created_at|date:"M d" }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="conversation-participant">
+                                    {% if user_type == 'landlord' %}
+                                        {{ conversation.tenant.name }} {{ conversation.tenant.surname }}
+                                    {% else %}
+                                        {{ conversation.landlord.name }} {{ conversation.landlord.surname }}
+                                    {% endif %}
+                                </div>
+                                {% if conversation.messages.last %}
+                                    <p class="conversation-preview">{{ conversation.messages.last.content|truncatewords:15 }}</p>
+                                {% else %}
+                                    <p class="conversation-preview conversation-empty">No messages yet</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Chevron Icon (Right) -->
+                            <div class="conversation-chevron">
+                                <span class="chevron-icon">›</span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-conversations-empty">
+                    <div class="empty-icon">💬</div>
+                    <h2 class="empty-title">No Conversations Yet</h2>
+                    <p class="empty-message">Start a conversation from an offer page to connect with landlords or tenants.</p>
+                    <a href="{% url 'offers' %}" class="empty-action-link">Browse Offers →</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</body>
+</html>

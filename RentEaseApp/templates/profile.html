@@ -1,0 +1,343 @@
+{% load static %}{% load price_format %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/profile.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord or tenant %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord or tenant %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord or tenant %}
+                {% if landlord %}
+                    <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% elif tenant %}
+                    <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% endif %}
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({% if landlord %}{{ landlord.name }}{% elif tenant %}{{ tenant.name }}{% endif %})</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Profile Dashboard -->
+    <div class="profile-dashboard">
+        <div class="profile-dashboard-grid">
+            <!-- Left Column: Profile Card (1/3 width) -->
+            <div class="profile-card-column">
+                <div class="profile-card">
+                    <!-- Circular Avatar Placeholder -->
+                    <div class="profile-avatar">
+                        {% if landlord %}
+                            <span class="avatar-initials">{{ landlord.name|first|upper }}{{ landlord.surname|first|upper }}</span>
+                        {% elif tenant %}
+                            <span class="avatar-initials">{{ tenant.name|first|upper }}{{ tenant.surname|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- User Info -->
+                    <div class="profile-info">
+                        <h2 class="profile-name">
+                            {% if landlord %}
+                                {{ landlord.name }} {{ landlord.surname }}
+                            {% elif tenant %}
+                                {{ tenant.name }} {{ tenant.surname }}
+                            {% endif %}
+                        </h2>
+                        <p class="profile-email">
+                            {% if landlord %}
+                                {{ landlord.email }}
+                            {% elif tenant %}
+                                {{ tenant.email }}
+                            {% endif %}
+                        </p>
+                        <div class="profile-role">
+                            {% if landlord %}
+                                <span class="role-badge role-landlord">Landlord</span>
+                            {% elif tenant %}
+                                <span class="role-badge role-tenant">Tenant</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Logout Button -->
+                    <div class="profile-actions">
+                        <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Edit Form & Conversations (2/3 width) -->
+            <div class="profile-content-column">
+                <!-- Quick Actions -->
+                {% if landlord %}
+                <div class="quick-actions-section" style="margin-bottom: 32px;">
+                    <a href="{% url 'create_contract' %}" class="btn-quick-action" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #51b86c 0%, #45a05a 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s ease;">
+                        📄 Create Contract
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Account Settings Section -->
+                <div class="account-settings-section">
+                    <h2 class="section-header">Account Settings</h2>
+                    
+                    <form method="post" class="profile-edit-form">
+                        {% csrf_token %}
+                        
+                        <div class="form-grid">
+                            <!-- Name and Surname on same row -->
+                            <div class="form-group">
+                                <label for="{{ form.name.id_for_label }}">Name</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="form-error">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="{{ form.surname.id_for_label }}">Surname</label>
+                                {{ form.surname }}
+                                {% if form.surname.errors %}
+                                    <div class="form-error">{{ form.surname.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Email full width -->
+                            <div class="form-group form-group-full">
+                                <label for="{{ form.email.id_for_label }}">Email</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="form-error">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Password full width -->
+                            <div class="form-group form-group-full">
+                                <label for="{{ form.password.id_for_label }}">New Password</label>
+                                {{ form.password }}
+                                {% if form.password.help_text %}
+                                    <small class="help-text">{{ form.password.help_text }}</small>
+                                {% endif %}
+                                {% if form.password.errors %}
+                                    <div class="form-error">{{ form.password.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Legal & Contract Data Section -->
+                        <div class="legal-data-section">
+                            <h3 class="section-subheader">Legal & Contract Data</h3>
+                            <p class="section-description">Fill out these fields to enable contract generation. All fields are optional but recommended for complete lease agreements.</p>
+                            
+                            <div class="form-grid">
+                                <!-- Phone Number -->
+                                <div class="form-group">
+                                    <label for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                                    {{ form.phone_number }}
+                                    {% if form.phone_number.help_text %}
+                                        <small class="help-text">{{ form.phone_number.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.phone_number.errors %}
+                                        <div class="form-error">{{ form.phone_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- PESEL -->
+                                <div class="form-group">
+                                    <label for="{{ form.pesel.id_for_label }}">PESEL</label>
+                                    {{ form.pesel }}
+                                    {% if form.pesel.help_text %}
+                                        <small class="help-text">{{ form.pesel.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.pesel.errors %}
+                                        <div class="form-error">{{ form.pesel.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- ID Card Number -->
+                                <div class="form-group form-group-full">
+                                    <label for="{{ form.id_card_number.id_for_label }}">ID Card Number (Numer Dowodu Osobistego)</label>
+                                    {{ form.id_card_number }}
+                                    {% if form.id_card_number.help_text %}
+                                        <small class="help-text">{{ form.id_card_number.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.id_card_number.errors %}
+                                        <div class="form-error">{{ form.id_card_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Address Street -->
+                                <div class="form-group form-group-full">
+                                    <label for="{{ form.address_street.id_for_label }}">Street Address</label>
+                                    {{ form.address_street }}
+                                    {% if form.address_street.help_text %}
+                                        <small class="help-text">{{ form.address_street.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.address_street.errors %}
+                                        <div class="form-error">{{ form.address_street.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- ZIP Code and City -->
+                                <div class="form-group">
+                                    <label for="{{ form.address_zip_code.id_for_label }}">ZIP/Postal Code</label>
+                                    {{ form.address_zip_code }}
+                                    {% if form.address_zip_code.help_text %}
+                                        <small class="help-text">{{ form.address_zip_code.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.address_zip_code.errors %}
+                                        <div class="form-error">{{ form.address_zip_code.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="{{ form.address_city.id_for_label }}">City</label>
+                                    {{ form.address_city }}
+                                    {% if form.address_city.help_text %}
+                                        <small class="help-text">{{ form.address_city.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.address_city.errors %}
+                                        <div class="form-error">{{ form.address_city.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Bank Account Number -->
+                                <div class="form-group form-group-full">
+                                    <label for="{{ form.bank_account_number.id_for_label }}">
+                                        Bank Account Number
+                                        {% if user_type == 'landlord' %}
+                                            (for rent payments)
+                                        {% else %}
+                                            (for deposit return)
+                                        {% endif %}
+                                    </label>
+                                    {{ form.bank_account_number }}
+                                    {% if form.bank_account_number.help_text %}
+                                        <small class="help-text">{{ form.bank_account_number.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.bank_account_number.errors %}
+                                        <div class="form-error">{{ form.bank_account_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn-update">Update Profile</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- My Conversations Section -->
+                <div class="conversations-section">
+                    <h2 class="section-header">Recent Conversations</h2>
+                    
+                    {% if conversations %}
+                        <div class="conversations-inbox">
+                            {% for conversation in conversations|slice:":5" %}
+                                <div class="conversation-item" onclick="location.href='{% url 'conversation_detail' conversation.id %}'">
+                                    <div class="conversation-main">
+                                        <div class="conversation-title-row">
+                                            <h3 class="conversation-title">{{ conversation.offer.title }}</h3>
+                                            <span class="conversation-date">{{ conversation.created_at|date:"M d, Y" }}</span>
+                                        </div>
+                                        <div class="conversation-participant">
+                                            {% if user_type == 'landlord' %}
+                                                With: {{ conversation.tenant.name }} {{ conversation.tenant.surname }}
+                                            {% else %}
+                                                Landlord: {{ conversation.landlord.name }} {{ conversation.landlord.surname }}
+                                            {% endif %}
+                                        </div>
+                                        {% if conversation.messages.last %}
+                                            <p class="conversation-preview">{{ conversation.messages.last.content|truncatewords:20 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="view-all-conversations">
+                            <a href="{% url 'conversations_list' %}" class="view-all-link">
+                                View All Conversations{% if conversations|length > 5 %} ({{ conversations|length }}){% endif %}
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="no-conversations">
+                            <div class="no-conversations-icon">💬</div>
+                            <h3 class="no-conversations-title">No Active Conversations</h3>
+                            <p class="no-conversations-text">Start a conversation from an offer page to connect with landlords or tenants.</p>
+                            <a href="{% url 'offers' %}" class="no-conversations-link">Browse Offers →</a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Assigned Offers Section (for tenants only) -->
+                {% if tenant and assigned_offers %}
+                <div class="assigned-offers-section">
+                    <h2 class="section-header">My Assigned Offers</h2>
+                    <div class="assigned-offers-grid">
+                        {% for offer in assigned_offers %}
+                            <div class="assigned-offer-card" onclick="location.href='{% url 'offer_detail' offer.id %}'">
+                                <div class="assigned-offer-image">
+                                    {% if offer.photos.first %}
+                                        <img src="{{ offer.photos.first.data_uri }}" alt="{{ offer.title }}">
+                                    {% else %}
+                                        <div class="no-assigned-photo">🏠</div>
+                                    {% endif %}
+                                </div>
+                                <div class="assigned-offer-info">
+                                    <h3 class="assigned-offer-title">{{ offer.title }}</h3>
+                                    <div class="assigned-offer-details">
+                                        <span>{% if offer.area %}{{ offer.area }}{% else %}{{ offer.square_footage }}{% endif %} m²</span>
+                                        <span class="assigned-offer-price">{{ offer.price|price_format }} zł</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,563 @@
+{% load static %}{% load price_format %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ offer.title }} - Rent Ease</title>
+    <link rel="stylesheet" href="{% static 'styles/main_site.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/offer_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'styles/carousel.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+    {% if landlord or tenant %}
+    <script src="{% static 'js/notifications.js' %}"></script>
+    {% endif %}
+</head>
+<body>
+<div class="main-container">
+    <!-- Header -->
+    <header class="top_panel">
+        <a href="{% url 'offers' %}" class="top-panel-logo-link"><topPanelLogo>
+            <img src="{% static 'images/logo.svg' %}" alt="Rent Ease Logo" style="height: 40px; width: auto;">
+        </topPanelLogo></a>
+        <div class="header-right">
+            <div class="theme-toggle-container">
+                <span class="theme-toggle-label">Light</span>
+                <label class="theme-toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+                    <span class="theme-toggle-slider"></span>
+                </label>
+                <span class="theme-toggle-label">Dark</span>
+            </div>
+            {% if landlord or tenant %}
+            <div class="notification-container">
+                <div class="notification-bell" id="notificationBell">
+                    🔔
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </div>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header">New Messages</div>
+                    <div class="notification-list"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if landlord or tenant %}
+                {% if landlord %}
+                    <TopPanelButton onclick="location.href='{% url 'my_offers' %}'">My Offers</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'manage_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% elif tenant %}
+                    <TopPanelButton onclick="location.href='{% url 'favorites' %}'">❤️ Favorites</TopPanelButton>
+                    <TopPanelButton onclick="location.href='{% url 'my_contracts' %}'">📄 Contracts</TopPanelButton>
+                {% endif %}
+                <TopPanelButton onclick="location.href='{% url 'profile' %}'">Profile</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'logout' %}'">Logout ({% if landlord %}{{ landlord.name }}{% elif tenant %}{{ tenant.name }}{% endif %})</TopPanelButton>
+            {% else %}
+                <TopPanelButton onclick="location.href='{% url 'register' %}'">Rejestracja</TopPanelButton>
+                <TopPanelButton onclick="location.href='{% url 'login' %}'">Logowanie</TopPanelButton>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="offer-detail-wrapper">
+        <!-- Top Actions Bar -->
+        <div class="offer-detail-top-bar">
+            <!-- Back Link - Top Left -->
+            <div class="back-link-container">
+                <a href="{% url 'offers' %}" class="back-link">← Back to Offers</a>
+            </div>
+
+            <!-- Action Buttons - Top Right (Owner only) -->
+            {% if is_owner %}
+            <div class="owner-actions">
+                <a href="{% url 'edit_offer' offer.id %}" class="btn-edit">✏️ Edit</a>
+                <a href="{% url 'delete_offer' offer.id %}" class="btn-delete">🗑️ Delete</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 2-Column Layout -->
+        <div class="offer-detail-grid">
+            <!-- Left Column: Image Gallery -->
+            <div class="offer-image-column">
+                <div class="photos-section">
+                    {% if photos %}
+                        <div class="carousel-container">
+                            {% for photo in photos %}
+                            <div class="carousel-slide">
+                                <img src="{{ photo.data_uri }}" alt="Photo {{ forloop.counter }} for {{ offer.title }}" style="width:100%">
+                            </div>
+                            {% endfor %}
+                            <a class="carousel-prev">&#10094;</a>
+                            <a class="carousel-next">&#10095;</a>
+                            <div class="carousel-counter"></div>
+                        </div>
+                    {% else %}
+                        <div class="no-photos-placeholder">
+                            <div class="no-photos-icon">🏠</div>
+                            <p class="no-photos-text">No photos available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column: Main Info (Sticky) -->
+            <div class="offer-info-column">
+                <div class="offer-info-card">
+                    <!-- Status Badge (if unavailable) -->
+                    {% if offer.status == 'Unavailable' %}
+                    <div class="unavailable-banner">
+                        <span class="unavailable-icon">⚠️</span>
+                        <span class="unavailable-text">Unavailable</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Title -->
+                    <h1 class="offer-detail-title">{{ offer.title }}</h1>
+
+                    <!-- Location -->
+                    {% if offer.location %}
+                    <div class="offer-detail-location">
+                        <span class="location-icon">📍</span>
+                        <span class="location-text">{{ offer.location }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Price (Massive) -->
+                    <div class="offer-detail-price">
+                        {{ offer.price|price_format }} zł
+                    </div>
+
+                    <!-- Key Specs Row -->
+                    <div class="offer-detail-specs">
+                        {% if offer.number_of_rooms %}
+                        <div class="detail-spec-item">
+                            <span class="detail-spec-icon">🛏️</span>
+                            <span class="detail-spec-text">{{ offer.number_of_rooms }} Rooms</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if offer.area %}
+                        <div class="detail-spec-item">
+                            <span class="detail-spec-icon">📐</span>
+                            <span class="detail-spec-text">{{ offer.area }} m²</span>
+                        </div>
+                        {% elif offer.square_footage %}
+                        <div class="detail-spec-item">
+                            <span class="detail-spec-icon">📐</span>
+                            <span class="detail-spec-text">{{ offer.square_footage }} m²</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if offer.floor %}
+                        <div class="detail-spec-item">
+                            <span class="detail-spec-icon">🏢</span>
+                            <span class="detail-spec-text">Floor {{ offer.floor }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Primary Action Buttons (Tenant View) -->
+                    {% if tenant and not is_owner and offer.status != 'Unavailable' %}
+                        <div class="offer-actions-row">
+                            {% if conversation %}
+                                <a href="{% url 'conversation_detail' conversation.id %}" class="btn-primary-action">💬 View Conversation</a>
+                            {% else %}
+                                <a href="{% url 'conversation_detail_from_offer' offer.id %}" class="btn-primary-action">💬 Start Conversation</a>
+                            {% endif %}
+                            <button class="favorite-button-detail" 
+                                    data-offer-id="{{ offer.id }}" 
+                                    data-is-favorite="{% if is_favorite %}true{% else %}false{% endif %}"
+                                    onclick="toggleFavorite({{ offer.id }}, this);"
+                                    aria-label="Add to favorites">
+                                <span class="favorite-icon">{% if is_favorite %}❤️{% else %}🤍{% endif %}</span>
+                            </button>
+                        </div>
+                    {% elif tenant and not is_owner %}
+                        <!-- Show favorite button even if offer is unavailable -->
+                        <div class="offer-actions-row">
+                            <button class="favorite-button-detail" 
+                                    data-offer-id="{{ offer.id }}" 
+                                    data-is-favorite="{% if is_favorite %}true{% else %}false{% endif %}"
+                                    onclick="toggleFavorite({{ offer.id }}, this);"
+                                    aria-label="Add to favorites">
+                                <span class="favorite-icon">{% if is_favorite %}❤️{% else %}🤍{% endif %}</span>
+                            </button>
+                        </div>
+                    {% endif %}
+
+                    <!-- Status Display -->
+                    {% if offer.status != 'Unavailable' %}
+                    <div class="offer-status-badge">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value">{{ offer.status }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Description Section (Below columns) -->
+        <div class="offer-description-section">
+            <h2 class="section-title">Description</h2>
+            <div class="description-content" id="descriptionContent">{{ offer.body }}</div>
+            <span class="show-more-btn" id="showMoreBtn" onclick="toggleDescription()" style="display: none;">Show more</span>
+            <span class="show-more-btn" id="showLessBtn" onclick="toggleDescription()" style="display: none;">Hide</span>
+        </div>
+
+        <!-- Details Grid (Organized into Sections) -->
+        <div class="offer-details-grid">
+            <!-- Building Info Section -->
+            <div class="detail-section">
+                <h3 class="detail-section-title">
+                    <span class="section-icon">🏗️</span>
+                    Building Information
+                </h3>
+                <div class="detail-items-grid">
+                    {% if offer.building_type %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🏢</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Building Type</span>
+                            <span class="detail-item-value">{{ offer.building_type }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.year_built %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">📅</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Year Built</span>
+                            <span class="detail-item-value">{{ offer.year_built }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.condition %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🔧</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Condition</span>
+                            <span class="detail-item-value">{{ offer.condition }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.sale_or_rent %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">💰</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Type</span>
+                            <span class="detail-item-value">{{ offer.sale_or_rent }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Costs Section -->
+            {% if offer.admin_fees or offer.deposit or offer.minimum_rental_period or offer.additional_utilities %}
+            <div class="detail-section">
+                <h3 class="detail-section-title">
+                    <span class="section-icon">💵</span>
+                    Costs & Fees
+                </h3>
+                <div class="detail-items-grid">
+                    {% if offer.admin_fees %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">📊</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Admin Fees</span>
+                            <span class="detail-item-value">{{ offer.admin_fees }} zł</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.deposit %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🔒</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Deposit</span>
+                            <span class="detail-item-value">{{ offer.deposit }} zł</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.minimum_rental_period %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">📆</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Min Rental Period</span>
+                            <span class="detail-item-value">{{ offer.minimum_rental_period }} months</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.additional_utilities %}
+                    <div class="detail-item detail-item-full">
+                        <span class="detail-item-icon">⚡</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Additional Utilities</span>
+                            <span class="detail-item-value">{{ offer.additional_utilities }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Amenities Section -->
+            <div class="detail-section">
+                <h3 class="detail-section-title">
+                    <span class="section-icon">✨</span>
+                    Amenities & Features
+                </h3>
+                <div class="detail-items-grid">
+                    {% if offer.furnished %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🪑</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Furnished</span>
+                            <span class="detail-item-value">{{ offer.furnished }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.heating %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🔥</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Heating</span>
+                            <span class="detail-item-value">{{ offer.heating }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.elevator %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🛗</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Elevator</span>
+                            <span class="detail-item-value">{{ offer.elevator }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.parking %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🚗</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Parking</span>
+                            <span class="detail-item-value">{{ offer.parking }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.balcony_terrace_garden %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🌳</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Outdoor Space</span>
+                            <span class="detail-item-value">{{ offer.balcony_terrace_garden }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.basement %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🏠</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Basement</span>
+                            <span class="detail-item-value">{{ offer.basement }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.internet_fiber %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🌐</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Internet/Fiber</span>
+                            <span class="detail-item-value">{{ offer.internet_fiber }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if offer.pets_allowed %}
+                    <div class="detail-item">
+                        <span class="detail-item-icon">🐾</span>
+                        <div class="detail-item-content">
+                            <span class="detail-item-label">Pets Allowed</span>
+                            <span class="detail-item-value">{{ offer.pets_allowed }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isExpanded = false;
+    
+    function toggleDescription() {
+        const content = document.getElementById('descriptionContent');
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        const showLessBtn = document.getElementById('showLessBtn');
+        
+        if (isExpanded) {
+            content.classList.add('collapsed');
+            showMoreBtn.style.display = 'inline-block';
+            showLessBtn.style.display = 'none';
+            isExpanded = false;
+        } else {
+            content.classList.remove('collapsed');
+            showMoreBtn.style.display = 'none';
+            showLessBtn.style.display = 'inline-block';
+            isExpanded = true;
+        }
+    }
+    
+    // Check if description needs show more button on page load
+    window.addEventListener('DOMContentLoaded', function() {
+        const content = document.getElementById('descriptionContent');
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        const showLessBtn = document.getElementById('showLessBtn');
+        
+        if (content && showMoreBtn && showLessBtn) {
+            // Get computed styles
+            const styles = window.getComputedStyle(content);
+            const lineHeight = parseFloat(styles.lineHeight) || parseFloat(styles.fontSize) * 1.6;
+            
+            // Calculate if content exceeds 8 lines
+            const maxHeight = lineHeight * 8;
+            const actualHeight = content.scrollHeight;
+            
+            if (actualHeight > maxHeight) {
+                // Content exceeds 8 lines, collapse it and show "Show more" button
+                content.classList.add('collapsed');
+                showMoreBtn.style.display = 'inline-block';
+                isExpanded = false;
+            } else {
+                // Content fits in 8 lines, hide buttons
+                showMoreBtn.style.display = 'none';
+                showLessBtn.style.display = 'none';
+            }
+        }
+    });
+    
+    function toggleFavorite(offerId, buttonElement) {
+        const icon = buttonElement.querySelector('.favorite-icon');
+        const isCurrentlyFavorite = buttonElement.dataset.isFavorite === 'true';
+        
+        // Optimistic update - immediately change the UI
+        if (isCurrentlyFavorite) {
+            icon.textContent = '🤍';
+            buttonElement.dataset.isFavorite = 'false';
+            buttonElement.classList.remove('favorite-active');
+        } else {
+            icon.textContent = '❤️';
+            buttonElement.dataset.isFavorite = 'true';
+            buttonElement.classList.add('favorite-active');
+        }
+        
+        // Add animation
+        buttonElement.classList.add('favorite-animate');
+        setTimeout(() => {
+            buttonElement.classList.remove('favorite-animate');
+        }, 300);
+        
+        // Send API request
+        fetch(`/api/favorites/${offerId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update state based on server response
+                if (data.isFavorite) {
+                    icon.textContent = '❤️';
+                    buttonElement.dataset.isFavorite = 'true';
+                    buttonElement.classList.add('favorite-active');
+                } else {
+                    icon.textContent = '🤍';
+                    buttonElement.dataset.isFavorite = 'false';
+                    buttonElement.classList.remove('favorite-active');
+                }
+            } else {
+                // Revert on error
+                if (isCurrentlyFavorite) {
+                    icon.textContent = '❤️';
+                    buttonElement.dataset.isFavorite = 'true';
+                    buttonElement.classList.add('favorite-active');
+                } else {
+                    icon.textContent = '🤍';
+                    buttonElement.dataset.isFavorite = 'false';
+                    buttonElement.classList.remove('favorite-active');
+                }
+                showToast('Failed to update favorite. Please try again.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error toggling favorite:', error);
+            // Revert on error
+            if (isCurrentlyFavorite) {
+                icon.textContent = '❤️';
+                buttonElement.dataset.isFavorite = 'true';
+                buttonElement.classList.add('favorite-active');
+            } else {
+                icon.textContent = '🤍';
+                buttonElement.dataset.isFavorite = 'false';
+                buttonElement.classList.remove('favorite-active');
+            }
+            showToast('Failed to update favorite. Please try again.', 'error');
+        });
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function showToast(message, type = 'info') {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'error' ? '#e74c3c' : '#51b86c'};
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>
+<script src="{% static 'js/carousel.js' %}"></script>
+</body>

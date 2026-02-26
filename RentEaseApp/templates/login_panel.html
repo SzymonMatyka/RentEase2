@@ -1,0 +1,18 @@
+{% load static %}
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'styles/login_panel.css' %}">
+    <script src="{% static 'js/theme.js' %}"></script>
+</head>
+<body>
+<div class="form-container">
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Login</button>
+    </form>
+    <p>Don’t have an account? <a href="/register" style="color:#51b86c;">Register</a></p>
+</div>
+</body>
+

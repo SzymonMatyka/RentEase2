@@ -1,0 +1,58 @@
+.confirm-container {
+    width: 100%;
+    padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.offer-details {
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.offer-details p {
+    white-space: pre-line;
+}
+
+.confirm-container .btn {
+    padding: 12px 24px;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 0 10px;
+}
+
+.confirm-container .btn-danger {
+    background-color: #dc3545;
+}
+
+.confirm-container .btn-danger:hover {
+    background-color: #c82333;
+}
+
+.confirm-container .btn-secondary {
+    background-color: #6c757d;
+}
+
+.confirm-container .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Dark mode */
+body.dark-mode .confirm-container {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .offer-details {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+}
+
